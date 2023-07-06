@@ -1,0 +1,13 @@
+future==0.18.2
+geopandas==0.13.2
+gym==0.17.3
+lxml==4.8.0
+matplotlib==3.5.1
+networkx==3.1
+numpy==1.21.5
+osmnx==1.5.0
+psutil==5.9.0
+PyYAML==6.0
+scipy==1.11.1
+xplane_airports==4.0.1
+xplane_apt_convert==0.5.5
