@@ -8,7 +8,7 @@ xplane_server:
   resolution_x: 600
   resolution_y: 600
   show_display: False
-  xplane_path: '/home/hemanth/X-Plane-11'
+  xplane_path: '~/X-Plane-11'
 
 ##------------------Experiment config------------------##
 experiment_config:
