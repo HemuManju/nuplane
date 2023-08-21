@@ -188,5 +188,3 @@ class Hero(BaseActor):
         self.client.sendCTRL(
             [elev, aileron, rudder, throttle, gear, flaps, speed_break]
         )
-        # time.sleep(0.001)
-

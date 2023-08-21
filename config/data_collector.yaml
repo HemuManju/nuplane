@@ -1,0 +1,33 @@
+##------------------XPlane server config------------------##
+xplane_server:
+  client_address: '0.0.0.0'
+  xp_host: '127.0.0.1'
+  xp_port: 49009
+  client_port: 1
+  timeout: 3000
+  resolution_x: 600
+  resolution_y: 600
+  show_display: False
+  xplane_path: '~/X-Plane-11'
+
+##------------------Experiment config------------------##
+experiment_config:
+  cloud_type: 1
+  time_of_the_day: 13 # +5 hours (UTC)
+  gate: B19
+  airport: KATL
+
+##------------------Ego config------------------##
+hero_config:
+  spawn_location: [3211] # [3902]
+
+##------------------Datawriter config------------------##
+
+##------------------Collector config------------------##
+
+##------------------Collector config------------------##
+
+##------------------Simulation config------------------##
+simulation:
+  seed: 1337
+  sync: True

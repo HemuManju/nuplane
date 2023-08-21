@@ -60,6 +60,4 @@ class SensorInterface(object):
                 data_dict[sensor_data[0]] = sensor_data[2]
             except queue.Empty:
                 pass
-        # print("Data buffer: {}".format(len(self._data_buffers.queue)))
-        # print("Event data buffer: {}".format(len(self._event_data_buffers.queue)))
         return data_dict

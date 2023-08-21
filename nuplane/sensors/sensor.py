@@ -13,10 +13,6 @@ import copy
 import math
 import numpy as np
 
-try:
-    import XPlane
-except ModuleNotFoundError:
-    pass
 # ==================================================================================================
 # -- BaseSensor -----------------------------------------------------------------------------------
 # ==================================================================================================
@@ -53,27 +49,6 @@ class BaseSensor(object):
 class XPlaneSensor(BaseSensor):
     def __init__(self, name, attributes, interface, parent):
         super().__init__(name, attributes, interface, parent)
-
-        world = self.parent.get_world()
-
-        type_ = self.attributes.pop("type", "")
-        transform = self.attributes.pop("transform", "0,0,0,0,0,0")
-        if isinstance(transform, str):
-            transform = [float(x) for x in transform.split(",")]
-        assert len(transform) == 6
-
-        blueprint = world.get_blueprint_library().find(type_)
-        blueprint.set_attribute("role_name", name)
-        for key, value in attributes.items():
-            blueprint.set_attribute(str(key), str(value))
-
-        transform = XPlane.Transform(
-            XPlane.Location(transform[0], transform[1], transform[2]),
-            XPlane.Rotation(transform[4], transform[5], transform[3]),
-        )
-        self.sensor = world.spawn_actor(blueprint, transform, attach_to=self.parent)
-
-        self.sensor.listen(self.callback)
 
     def destroy(self):
         if self.sensor is not None:
@@ -121,31 +96,6 @@ class CameraSemanticSegmentation(BaseCamera):
         super().__init__(name, attributes, interface, parent)
 
 
-class CameraDVS(XPlaneSensor):
-    def __init__(self, name, attributes, interface, parent):
-        super().__init__(name, attributes, interface, parent)
-
-    def is_event_sensor(self):
-        return True
-
-    def parse(self, sensor_data):
-        """Parses the DVSEvents into an RGB image"""
-        # sensor_data: [x, y, t, polarity]
-        dvs_events = np.frombuffer(
-            sensor_data.raw_data,
-            dtype=np.dtype(
-                [('x', np.uint16), ('y', np.uint16), ('t', np.int64), ('pol', np.bool)]
-            ),
-        )
-
-        dvs_img = np.zeros((sensor_data.height, sensor_data.width, 3), dtype=np.uint8)
-        dvs_img[
-            dvs_events[:]['y'], dvs_events[:]['x'], dvs_events[:]['pol'] * 2
-        ] = 255  # Blue is positive, red is negative
-
-        return dvs_img
-
-
 # ==================================================================================================
 # -- LIDAR -----------------------------------------------------------------------------------
 # ==================================================================================================
@@ -153,77 +103,25 @@ class Lidar(XPlaneSensor):
     def __init__(self, name, attributes, interface, parent):
         super().__init__(name, attributes, interface, parent)
 
-    def parse(self, sensor_data):
-        """Parses the LidarMeasurememt into an numpy array"""
-        # sensor_data: [x, y, z, intensity]
-        points = np.frombuffer(sensor_data.raw_data, dtype=np.dtype('f4'))
-        points = copy.deepcopy(points)
-        points = np.reshape(points, (int(points.shape[0] / 4), 4))
-        return points
-
 
 class SemanticLidar(XPlaneSensor):
     def __init__(self, name, attributes, interface, parent):
         super().__init__(name, attributes, interface, parent)
 
-    def parse(self, sensor_data):
-        """Parses the SemanticLidarMeasurememt into an numpy array"""
-        # sensor_data: [x, y, z, cos(angle), actor index, semantic tag]
-        points = np.frombuffer(sensor_data.raw_data, dtype=np.dtype('f4'))
-        points = copy.deepcopy(points)
-        points = np.reshape(points, (int(points.shape[0] / 6), 6))
-        return points
-
 
 # ==================================================================================================
 # -- Others -----------------------------------------------------------------------------------
 # ==================================================================================================
-class Radar(XPlaneSensor):
-    def __init__(self, name, attributes, interface, parent):
-        super().__init__(name, attributes, interface, parent)
-
-    def parse(self, sensor_data):
-        """Parses the RadarMeasurement into an numpy array"""
-        # sensor_data: [depth, azimuth, altitute, velocity]
-        points = np.frombuffer(sensor_data.raw_data, dtype=np.dtype('f4'))
-        points = copy.deepcopy(points)
-        points = np.reshape(points, (int(points.shape[0] / 4), 4))
-        points = np.flip(points, 1)
-        return points
 
 
 class Gnss(XPlaneSensor):
     def __init__(self, name, attributes, interface, parent):
         super().__init__(name, attributes, interface, parent)
 
-    def parse(self, sensor_data):
-        """Parses the GnssMeasurement into an numpy array"""
-        # sensor_data: [latitude, longitude, altitude]
-        return np.array(
-            [sensor_data.latitude, sensor_data.longitude, sensor_data.altitude],
-            dtype=np.float64,
-        )
-
 
 class Imu(XPlaneSensor):
     def __init__(self, name, attributes, interface, parent):
         super().__init__(name, attributes, interface, parent)
-
-    def parse(self, sensor_data):
-        """Parses the IMUMeasurement into an numpy array"""
-        # sensor_data: [accelerometer, gyroscope, compass]
-        return np.array(
-            [
-                sensor_data.accelerometer.x,
-                sensor_data.accelerometer.y,
-                sensor_data.accelerometer.z,
-                sensor_data.gyroscope.x,
-                sensor_data.gyroscope.y,
-                sensor_data.gyroscope.z,
-                sensor_data.compass,
-            ],
-            dtype=np.float64,
-        )
 
 
 class LaneInvasion(XPlaneSensor):
@@ -233,33 +131,10 @@ class LaneInvasion(XPlaneSensor):
     def is_event_sensor(self):
         return True
 
-    def parse(self, sensor_data):
-        """Parses the IMUMeasurement into a list"""
-        # sensor_data: [transform, lane marking]
-        return [sensor_data.transform, sensor_data.crossed_lane_markings]
-
 
 class Collision(XPlaneSensor):
     def __init__(self, name, attributes, interface, parent):
-        self._last_event_frame = 0
         super().__init__(name, attributes, interface, parent)
-
-    def callback(self, data):
-        # The collision sensor can have multiple callbacks per tick. Get only the first one
-        if self._last_event_frame != data.frame:
-            self._last_event_frame = data.frame
-            self.update_sensor(data, data.frame)
-
-    def is_event_sensor(self):
-        return True
-
-    def parse(self, sensor_data):
-        """Parses the ObstacleDetectionEvent into a list"""
-        # sensor_data: [other actor, distance]
-        impulse = sensor_data.normal_impulse
-        impulse_value = math.sqrt(impulse.x ** 2 + impulse.y ** 2 + impulse.z ** 2)
-        # [sensor_data.other_actor, impulse_value]
-        return impulse_value
 
 
 class Obstacle(XPlaneSensor):
@@ -268,8 +143,3 @@ class Obstacle(XPlaneSensor):
 
     def is_event_sensor(self):
         return True
-
-    def parse(self, sensor_data):
-        """Parses the ObstacleDetectionEvent into a list"""
-        # sensor_data: [other actor, distance]
-        return [sensor_data.other_actor, sensor_data.distance]
