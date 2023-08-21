@@ -43,7 +43,7 @@ class XPlaneCore:
     actor spawning and getting the sensors data.
     """
 
-    def __init__(self, config={}, debug=False):
+    def __init__(self, config={}, debug=True):
         """Initialize the server and client"""
         self.client = None
         self.world = None
