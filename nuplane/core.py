@@ -69,8 +69,8 @@ class XPlaneCore:
         if not os.path.exists(xplane_bin):
             xplane_bin_orig = xplane_bin
             xplane_bin = xplane_bin.replace('X-Plane-11', "X-Plane 11")
-        if not os.path.exists(xplane_bin):
-            raise ValueError("Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}")
+            if not os.path.exists(xplane_bin):
+                raise ValueError("Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}")
 
         server_command = [
             xplane_bin,
