@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2021 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
 import os
 import random
 import signal
@@ -61,8 +53,10 @@ class XPlaneCore:
         self.sensor_interface = SensorInterface()
 
         if not debug:
-            # self.init_server()
-            self.connect_client()
+            self.init_server()
+
+        # Connect to client
+        self.connect_client()
 
         # Setup the map
         self.map = Map(self.client, config)

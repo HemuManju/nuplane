@@ -1,11 +1,10 @@
-from .utils.transform import join_dicts
-
-BASE_EXPERIMENT_CONFIG = {}
+from nuplane.base_experiment import BaseExperiment
 
 
-class BaseExperiment(object):
-    def __init__(self, config):
-        self.config = join_dicts(BASE_EXPERIMENT_CONFIG, config)
+class AutoLandingExperiment(BaseExperiment):
+    def __init__(self, config, core):
+        super().__init__(config, core)
+        pass
 
     def reset(self):
         """Called at the beginning and each time the simulation is reset"""
@@ -13,24 +12,24 @@ class BaseExperiment(object):
 
     def get_action_space(self):
         """Returns the action space"""
-        raise NotImplementedError
+        pass
 
     def get_observation_space(self):
         """Returns the observation space"""
-        raise NotImplementedError
+        pass
 
     def get_actions(self):
         """Returns the actions"""
-        raise NotImplementedError
+        pass
 
-    def compute_action(self, action):
-        """Given the action, returns a XPlane.VehicleControl() which will be applied to the hero
+    def apply_actions(self, actions, core):
+        """Given the action, returns a carla.VehicleControl() which will be applied to the hero
 
         :param action: value outputted by the policy
         """
-        raise NotImplementedError
+        pass
 
-    def get_observation(self, sensor_data):
+    def get_observation(self, observation, core):
         """Function to do all the post processing of observations (sensor data).
 
         :param sensor_data: dictionary {sensor_name: sensor_data}
@@ -39,7 +38,7 @@ class BaseExperiment(object):
         as well as a variable with additional information about such observation.
         The information variable can be empty
         """
-        return NotImplementedError
+        return None, {}
 
     def get_done_status(self, observation, core):
         """Returns whether or not the experiment has to end"""
@@ -47,4 +46,4 @@ class BaseExperiment(object):
 
     def compute_reward(self, observation, core):
         """Computes the reward"""
-        return NotImplementedError
+        pass

@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2021 Computer Vision Center (CVC) at the Universitat Autonoma de
-# Barcelona (UAB).
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
 import collections.abc
 import os
 import glob
@@ -69,28 +61,28 @@ def get_bearing(lat1, lon1, lat2, lon2):
 
 def linear_refine_implicit(x, n):
     """Given a 2D ndarray (npt, m) of npt coordinates in m dimension,
-        insert 2**(n-1) additional points on each trajectory segment
-        Returns an (npt*2**(n-1), m) ndarray
+    insert 2**(n-1) additional points on each trajectory segment
+    Returns an (npt*2**(n-1), m) ndarray
 
-        Parameters
-        ----------
-        x : array
-            A 2D input array
-        n : int
-            Number of intermediate points to insert between two consecutive points in x
+    Parameters
+    ----------
+    x : array
+        A 2D input array
+    n : int
+        Number of intermediate points to insert between two consecutive points in x
 
-        Returns
-        -------
-        array
-            An array with interploated points
+    Returns
+    -------
+    array
+        An array with interploated points
 
-        Raises
-        ------
-        NotImplementedError
-            The functions is not implemented for 3D or higher dimensions
-        ValueError
-            Number of intermediate points should be greated than zero
-        """
+    Raises
+    ------
+    NotImplementedError
+        The functions is not implemented for 3D or higher dimensions
+    ValueError
+        Number of intermediate points should be greated than zero
+    """
     if n > 1:
         m = 0.5 * (x[:-1] + x[1:])
         if x.ndim == 2:
@@ -197,7 +189,7 @@ def local_to_home(x, y, start_x, start_y):
 
 def bernstein(i, n, t):
     """
-     The i-th Bernstein polynomial of degree n
+    The i-th Bernstein polynomial of degree n
     """
     return comb(n, i) * (t ** (n - i)) * (1 - t) ** i
 
@@ -221,16 +213,16 @@ def _weighted_bezier_curve(points, weights, n_points=50):
 
 def bezier_curve(points, weights=None, n_points=200):
     """
-       Given a set of control points, return the
-       bezier curve defined by the control points.
+    Given a set of control points, return the
+    bezier curve defined by the control points.
 
-       points should be a list of lists, or list of tuples
-       such as [ [1,1],
-                 [2,3],
-                 [4,5], ..[Xn, Yn] ]
-        nTimes is the number of time steps, defaults to 1000
+    points should be a list of lists, or list of tuples
+    such as [ [1,1],
+              [2,3],
+              [4,5], ..[Xn, Yn] ]
+     nTimes is the number of time steps, defaults to 1000
 
-        See http://processingjs.nihongoresources.com/bezierinfo/
+     See http://processingjs.nihongoresources.com/bezierinfo/
     """
 
     if weights is None:

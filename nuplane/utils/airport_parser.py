@@ -13,7 +13,6 @@ from nuplane.utils.transform import haversine_distance
 
 
 def parse_airport_taxi_network(airport_id):
-
     export_path = f'data/{airport_id}/'
 
     # Check if the file exists:
