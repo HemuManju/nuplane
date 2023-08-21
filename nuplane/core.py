@@ -65,16 +65,21 @@ class XPlaneCore:
         """Start a server on a random port"""
         # Ray tends to start all processes simultaneously. Use random delays to avoid problems
         time.sleep(random.uniform(0, 1))
+        xplane_bin = os.path.expanduser(f"{self.config['xplane_server']['xplane_path']}/X-Plane-x86_64")
+        if not os.path.exists(xplane_bin):
+            xplane_bin_orig = xplane_bin
+            xplane_bin = xplane_bin.replace('X-Plane-11', "X-Plane 11")
+        if not os.path.exists(xplane_bin):
+            raise ValueError("Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}")
+
         server_command = [
-            f"{self.config['xplane_server']['xplane_path']}/X-Plane-x86_64",
+            xplane_bin,
             f"--windowed={self.config['xplane_server']['resolution_x']}x{self.config['xplane_server']['resolution_y']}",
             "--no_sound",
         ]
 
-        server_command_text = " ".join(map(str, server_command))
         self.process = subprocess.Popen(
-            server_command_text,
-            shell=True,
+            server_command,
             preexec_fn=os.setsid,
             stdout=open(os.devnull, "w"),
         )
