@@ -133,6 +133,11 @@ class PIDLateralController:
 
 
 class PathController:
+
+    # Throttle command ranges from -1 to 1
+    # but too low of a throttle can stall the engine
+    MIN_THROTTLE = 0.
+
     def __init__(self, agent, dt=0.1, *args, **kwargs):
         self.agent = agent
         self.controller_state = "tracking"
@@ -182,7 +187,7 @@ class PathController:
             self.speed_break = -0.5
 
         self.steering = np.clip(self.steering, -0.5, 0.5)
-        self.throttle = np.clip(self.throttle, -1.0, 1.0)
+        self.throttle = np.clip(self.throttle, self.MIN_THROTTLE, 1.0)
         control = [
             0,
             self.steering,
