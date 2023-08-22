@@ -1,6 +1,6 @@
 # NASA ULI Xplane Simulator
 
-<!-- ![Simulator Banner](simulator_banner.jpg) -->
+![Simulator Banner](docs/images/cessna.png)
 
 Welcome to the NASA ULI Xplane Simulator! This project aims to develop a powerful and flexible flight simulator built on top of the XPlane platform.
 

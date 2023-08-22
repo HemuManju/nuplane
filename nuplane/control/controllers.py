@@ -185,7 +185,7 @@ class PathController:
             self.speed_break = -0.5
 
         self.steering = np.clip(self.steering, -0.5, 0.5)
-        self.throttle = np.clip(self.throttle, -1.0, 1.0)
+        self.throttle = np.clip(self.throttle, self.MIN_THROTTLE, 1.0)
         control = [
             0,
             self.steering,
