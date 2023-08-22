@@ -65,12 +65,16 @@ class XPlaneCore:
         """Start a server on a random port"""
         # Ray tends to start all processes simultaneously. Use random delays to avoid problems
         time.sleep(random.uniform(0, 1))
-        xplane_bin = os.path.expanduser(f"{self.config['xplane_server']['xplane_path']}/X-Plane-x86_64")
+        xplane_bin = os.path.expanduser(
+            f"{self.config['xplane_server']['xplane_path']}/X-Plane-x86_64"
+        )
         if not os.path.exists(xplane_bin):
             xplane_bin_orig = xplane_bin
             xplane_bin = xplane_bin.replace('X-Plane-11', "X-Plane 11")
             if not os.path.exists(xplane_bin):
-                raise ValueError("Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}")
+                raise ValueError(
+                    f"Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}"
+                )
 
         server_command = [
             xplane_bin,
@@ -105,20 +109,8 @@ class XPlaneCore:
             "Cannot connect to server. Try increasing 'timeout' or 'retries_on_error' at the XPlane configuration"
         )
 
-    def setup_experiment(self, experiment_config, hero=None, ai_aircrafts=None):
+    def setup_experiment(self, experiment_config, hero=None):
         """Initialize the hero and sensors"""
-
-        # Setup Hero and AI aircrafts
-        self.hero = hero
-        if self.hero.map is None:
-            self.hero.map = self.map
-
-        self.ai_aircrafts = ai_aircrafts
-        if self.ai_aircrafts is not None:
-            for ai_aircraft in self.ai_aircrafts:
-                if ai_aircraft.map is None:
-                    ai_aircrafts.map = self.map
-
         # Set weather and time of the day
         self.client.sendDREF(
             'sim/weather/cloud_type[0]', experiment_config['cloud_type']
@@ -129,16 +121,7 @@ class XPlaneCore:
 
     def reset(self, *args, **kwargs):
         self.client.pauseSim(True)
-
-        # Reset Hero and AI aircrafts
-        self.hero.reset(*args, **kwargs)
-
-        if self.ai_aircrafts is not None:
-            for aircraft in self.ai_aircrafts:
-                aircraft.reset()
-
         self.client.sendDREFs(["sim/operation/fix_all_systems"], [1])
-
         self.client.pauseSim(False)
 
     def apply_action(self, control):
@@ -149,11 +132,8 @@ class XPlaneCore:
 
         return None
 
-    def tick(self, control):
+    def tick(self):
         """Performs one tick of the simulation, moving all actors, and getting the sensor data"""
-
-        # Apply the control
-        self.apply_action(control)
 
         # Return the sensor data
         return self.get_sensor_data()
@@ -163,3 +143,6 @@ class XPlaneCore:
         sensor_data = self.sensor_interface.get_data()
 
         return sensor_data
+
+    def close_simulation(self):
+        raise NotImplementedError

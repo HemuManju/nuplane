@@ -11,11 +11,9 @@ xplane_server:
   xplane_path: '~/X-Plane-11'
 
 ##------------------Experiment config------------------##
-experiment_config:
-  cloud_type: 1
-  time_of_the_day: 13 # +5 hours (UTC)
-  gate: B19
-  airport: KATL
+experiment:
+  type: null
+  experiment_config: null
 
 ##------------------Ego config------------------##
 hero_config:

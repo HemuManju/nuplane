@@ -1,0 +1,9 @@
+##------------------Experiment config------------------##
+cloud_type: 1
+time_of_the_day: 13 # +5 hours (UTC)
+gate: B19
+airport: KATL
+
+##------------------Ego config------------------##
+hero_config:
+  spawn_location: [3211] # [3902]

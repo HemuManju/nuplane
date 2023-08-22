@@ -1,9 +1,7 @@
 import yaml
 import time
-import numpy as np
-import os
 import networkx as nx
-
+import osmnx as ox
 
 from nuplane.core import XPlaneCore
 from nuplane.core import kill_all_servers
@@ -11,10 +9,11 @@ from nuplane.utils.transform import get_bearing
 from nuplane.control.controllers import PathController
 from nuplane.navigation.path_planner import PathPlanner
 
-from nuplane.utils.airport_parser import parse_airport_taxi_network
+from nuplane.env import XPlaneEnv
 
+from experiments.taxiing.taxi_experiment import TaxiingExperiment
 from experiments.agents import Hero, AIAircraft
-import osmnx as ox
+
 
 import matplotlib.pyplot as plt
 
@@ -103,12 +102,17 @@ with skip_run('skip', 'explore_new_route_network') as check, check():
     ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker='o')
     plt.show()
 
-with skip_run('run', 'explore_path_planning') as check, check():
+with skip_run('skip', 'explore_path_planning') as check, check():
+    config['experiment']['type'] = TaxiingExperiment
+    config['experiment']['experiment_config'] = yaml.load(
+        open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
+    )
+
     core = XPlaneCore(config)
     G = core.map.get_node_graph()
 
     spawn_points = yaml.load(open('config/spawn_points.yaml'), Loader=yaml.SafeLoader)
-    num = 6
+    num = 2
     start = spawn_points[num]['start']
     end = spawn_points[num]['end']
 
@@ -123,7 +127,9 @@ with skip_run('run', 'explore_path_planning') as check, check():
     path_planner.set_route(route_lat_lon)
 
     hero = Hero(core.client, config['hero_config'])
-    core.setup_experiment(experiment_config=config['experiment_config'], hero=hero)
+    core.setup_experiment(
+        experiment_config=config['experiment']['experiment_config'], hero=hero
+    )
     core.reset(path_planner.get_orientation())
 
     # Controller
@@ -143,6 +149,24 @@ with skip_run('run', 'explore_path_planning') as check, check():
             hero.apply_action(control)
 
     hero.apply_action([0, 0, 0, 0, 0, 0, 1.5, 1])
+
+with skip_run('run', 'taxiing_experiment') as check, check():
+    # Setup the environment and experiment
+    config['experiment']['type'] = TaxiingExperiment
+    config['experiment']['experiment_config'] = yaml.load(
+        open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
+    )
+    xplane_env = XPlaneEnv(config, debug=True)
+    obs, reward, done, info = xplane_env.reset()
+
+    # Controller or RL
+    controller = PathController(agent=xplane_env.experiment.hero)
+
+    while not done:
+        control = controller.get_control(obs[0], obs[1])
+
+        # Apply control
+        obs, reward, done, info = xplane_env.step(control)
 
 with skip_run('skip', 'explore_functionality') as check, check():
     # kill_all_servers()

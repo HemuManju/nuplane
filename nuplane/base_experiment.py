@@ -4,8 +4,9 @@ BASE_EXPERIMENT_CONFIG = {}
 
 
 class BaseExperiment(object):
-    def __init__(self, config):
+    def __init__(self, config, core):
         self.config = join_dicts(BASE_EXPERIMENT_CONFIG, config)
+        self.core = core
 
     def reset(self):
         """Called at the beginning and each time the simulation is reset"""
@@ -23,14 +24,14 @@ class BaseExperiment(object):
         """Returns the actions"""
         raise NotImplementedError
 
-    def compute_action(self, action):
+    def apply_actions(self, actions, core):
         """Given the action, returns a XPlane.VehicleControl() which will be applied to the hero
 
         :param action: value outputted by the policy
         """
         raise NotImplementedError
 
-    def get_observation(self, sensor_data):
+    def get_observation(self, sensor_data, core):
         """Function to do all the post processing of observations (sensor data).
 
         :param sensor_data: dictionary {sensor_name: sensor_data}

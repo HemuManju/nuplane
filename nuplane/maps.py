@@ -102,7 +102,9 @@ class TaxiRouteNetwork:
             node.id: node
             for node in map(
                 lambda tokens: TaxiRouteNode(
-                    id=int(tokens[4]), lon=float(tokens[2]), lat=float(tokens[1]),
+                    id=int(tokens[4]),
+                    lon=float(tokens[2]),
+                    lat=float(tokens[1]),
                 ),
                 filter(
                     lambda line: line[0] == RowCode.TAXI_ROUTE_NODE, tokenized_lines
@@ -126,7 +128,7 @@ class Map:
         return None
 
     def _setup(self, config):
-        airport = config['experiment_config']['airport']
+        airport = config['experiment']['experiment_config']['airport']
         self._parse_taxi_network(config, airport)
 
     def _setup_depreciated(self, config):
@@ -146,7 +148,7 @@ class Map:
         FileNotFoundError
             If the experiment config is none, raises a file not found error
         """
-        airport = config['experiment_config']['airport']
+        airport = config['experiment']['experiment_config']['airport']
 
         # Check if .apt data already exist
         if not Path(f'data/{airport}.dat').is_file():
