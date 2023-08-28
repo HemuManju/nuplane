@@ -11,7 +11,7 @@ from nuplane.utils.transform import (
     linear_refine_implicit,
 )
 
-from nuplane.control.controllers import angle_diff
+from experiments.taxiing.control.controllers import angle_diff
 
 
 class PathPlanner(object):
@@ -131,7 +131,6 @@ class PathPlanner(object):
         # Start executing the action
         # TODO: Need to better next position search
         if len(self.route_deque) > 0:
-
             # Update route points
             self.update_route_points(observation)
 
@@ -166,4 +165,3 @@ class PathPlanner(object):
             return True
         else:
             return False
-

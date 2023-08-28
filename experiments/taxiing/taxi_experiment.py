@@ -2,7 +2,8 @@ import yaml
 import osmnx as ox
 
 from nuplane.base_experiment import BaseExperiment
-from nuplane.navigation.path_planner import PathPlanner
+
+from experiments.taxiing.navigation.path_planner import PathPlanner
 
 
 from experiments.agents import Hero

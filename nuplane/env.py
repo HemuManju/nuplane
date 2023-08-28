@@ -58,6 +58,7 @@ class XPlaneEnv(gym.Env):
     def step(self, action):
         """Computes one tick of the environment in order to return the new observation,
         as well as the rewards"""
+        # TODO: implement synchronmous or asynchronous simulation here
 
         self.experiment.apply_actions(action, self.core)
         raw_data = self.core.tick()

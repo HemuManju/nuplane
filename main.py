@@ -3,14 +3,16 @@ import time
 import networkx as nx
 import osmnx as ox
 
+
 from nuplane.core import XPlaneCore
 from nuplane.core import kill_all_servers
 from nuplane.utils.transform import get_bearing
-from nuplane.control.controllers import PathController
-from nuplane.navigation.path_planner import PathPlanner
+
 
 from nuplane.env import XPlaneEnv
 
+from experiments.taxiing.control.controllers import PathController
+from experiments.taxiing.navigation.path_planner import PathPlanner
 from experiments.taxiing.taxi_experiment import TaxiingExperiment
 from experiments.agents import Hero, AIAircraft
 
@@ -167,6 +169,18 @@ with skip_run('run', 'taxiing_experiment') as check, check():
 
         # Apply control
         obs, reward, done, info = xplane_env.step(control)
+
+with skip_run('run', 'image_data_feed') as check, check():
+    config['experiment']['type'] = TaxiingExperiment
+    config['experiment']['experiment_config'] = yaml.load(
+        open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
+    )
+
+    core = XPlaneCore(config, debug=True)
+    data = core.client.getDREF("nuplane/camera_rgb")
+    print(data)
+
+    print(len(data))
 
 with skip_run('skip', 'explore_functionality') as check, check():
     # kill_all_servers()
