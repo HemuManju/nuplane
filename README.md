@@ -1,6 +1,7 @@
 # NASA ULI Xplane Simulator
 
 ![Simulator Banner](docs/images/cessna.png)
+*(Screenshot for illustration purposes only.)*
 
 Welcome to the NASA ULI Xplane Simulator! This project aims to develop a powerful and flexible flight simulator built on top of the XPlane platform.
 
@@ -75,6 +76,3 @@ This project is licensed under the [MIT License](LICENSE), which means you are f
 
 We hope you enjoy using the XPlane Simulator with Data Collector and OpenAI Gym Interface. Happy flying!
 
-![Simulator Screenshot](simulator_screenshot.jpg)
-
-*(Screenshot for illustration purposes only.)*
