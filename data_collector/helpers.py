@@ -98,3 +98,38 @@ def create_directory(write_path):
 def find_tar_files(read_path, pattern):
     files = [str(f) for f in Path(read_path).glob('*.tar') if f.match(pattern + '*')]
     return natsort.natsorted(files)
+
+
+def rotateToHome(x, y):
+    """Rotate to the home coordinate frame.
+
+    Home coordinate frame starts at (0,0) at the start of the runway
+    and ends at (0, 2982 at the end of the runway). Thus, the x-value
+    in the home coordinate frame corresponds to crosstrack error and
+    the y-value corresponds to downtrack position.
+
+    Args:
+        x: x-value in local coordinate frame
+        y: y-value in local coordinate frame
+    """
+    rotx = 0.583055934597441 * x + 0.8124320138514389 * y
+    roty = -0.8124320138514389 * x + 0.583055934597441 * y
+    return rotx, roty
+
+
+def localToHome(x, y):
+    """Get the home coordinates of the aircraft from the local coordinates.
+
+    Args:
+        x: x-value in the local coordinate frame
+        y: y-value in the local coordinate frame
+    """
+
+    # Translate to make start x and y the origin
+    startX, startY = getStartXY()
+    transx = startX - x
+    transy = startY - y
+
+    # Rotate to align runway with y axis
+    rotx, roty = rotateToHome(transx, transy)
+    return rotx, roty

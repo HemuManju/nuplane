@@ -8,7 +8,7 @@ class BaseExperiment(object):
         self.config = join_dicts(BASE_EXPERIMENT_CONFIG, config)
         self.core = core
 
-    def reset(self):
+    def reset(self, *args, **kwargs):
         """Called at the beginning and each time the simulation is reset"""
         pass
 

@@ -9,12 +9,16 @@ from nuplane.core import kill_all_servers
 from nuplane.utils.transform import get_bearing
 
 
-from nuplane.env import XPlaneEnv
+from nuplane.env import NUPlaneEnv
 
 from experiments.taxiing.control.controllers import PathController
 from experiments.taxiing.navigation.path_planner import PathPlanner
 from experiments.taxiing.taxi_experiment import TaxiingExperiment
 from experiments.agents import Hero, AIAircraft
+
+
+from data_collector.data_collector import DataCollector
+from data_collector.experiments.simple_experiment import SimpleExperiment
 
 
 import matplotlib.pyplot as plt
@@ -152,25 +156,44 @@ with skip_run('skip', 'explore_path_planning') as check, check():
 
     hero.apply_action([0, 0, 0, 0, 0, 0, 1.5, 1])
 
-with skip_run('run', 'taxiing_experiment') as check, check():
+with skip_run('skip', 'taxiing_experiment_video') as check, check():
     # Setup the environment and experiment
     config['experiment']['type'] = TaxiingExperiment
     config['experiment']['experiment_config'] = yaml.load(
         open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
     )
-    xplane_env = XPlaneEnv(config, debug=True)
+    xplane_env = NUPlaneEnv(config, debug=True)
     obs, reward, done, info = xplane_env.reset()
 
     # Controller or RL
     controller = PathController(agent=xplane_env.experiment.hero)
+    i = 0
+
+    t = 1000
+    xplane_env.core.client.sendDREF('sim/weather/rain_percent', 1.0)
+    xplane_env.core.client.sendDREF('sim/weather/cloud_base_msl_m[1]', 750000)
+    xplane_env.core.client.sendDREF('sim/graphics/scenery/airport_light_level', 1)
 
     while not done:
+        i += 1
         control = controller.get_control(obs[0], obs[1])
 
         # Apply control
         obs, reward, done, info = xplane_env.step(control)
 
-with skip_run('run', 'image_data_feed') as check, check():
+        if i > t and i < (2 * t):
+            xplane_env.core.client.sendDREF('sim/weather/cloud_type[0]', 4)
+
+        if i > (2 * t) and i < (3 * t):
+            xplane_env.core.client.sendDREF('sim/weather/cloud_type[1]', 1)
+
+        if i > (3 * t) and i < (4 * t):
+            xplane_env.core.client.sendDREF('sim/weather/cloud_type[0]', 3)
+
+        if i > (4 * t) and i < (5 * t):
+            xplane_env.core.client.sendDREF('sim/weather/cloud_type[0]', 2)
+
+with skip_run('skip', 'image_data_feed') as check, check():
     config['experiment']['type'] = TaxiingExperiment
     config['experiment']['experiment_config'] = yaml.load(
         open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
@@ -215,3 +238,11 @@ with skip_run('skip', 'explore_functionality') as check, check():
         time.sleep(10)
         hero.apply_action([0, 0, 0, 0, False])
         ai_carft.apply_action([0, 0, 0, 0, False])
+
+with skip_run('skip', 'data_collector') as check, check():
+    config = yaml.load(open('data_collector/sinusoidal.yaml'), Loader=yaml.SafeLoader)
+
+    config['experiment']['type'] = SimpleExperiment
+
+    data_collector = DataCollector(config=config, write_path=None)
+    data_collector.write_loop()

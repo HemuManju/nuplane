@@ -4,9 +4,9 @@ import gym
 from .core import XPlaneCore
 
 
-class XPlaneEnv(gym.Env):
+class NUPlaneEnv(gym.Env):
     """
-    This is a XPlane environment, responsible of handling all the XPlane related steps of the training.
+    This is a NUPlane environment, responsible of handling all the XPlane related steps of the training.
     """
 
     def __init__(self, config, debug=False):
@@ -39,7 +39,7 @@ class XPlaneEnv(gym.Env):
         self.action_space = self.experiment.get_action_space()
         self.observation_space = self.experiment.get_observation_space()
 
-    def reset(self):
+    def reset(self, *args, **kwargs):
         """Reset the simulation
 
         Returns
@@ -47,7 +47,7 @@ class XPlaneEnv(gym.Env):
         [type]
             [description]
         """
-        obs, reward, done, info = self.experiment.reset()
+        obs, reward, done, info = self.experiment.reset(*args, **kwargs)
         self.core.reset()
         raw_data = self.core.tick()
 

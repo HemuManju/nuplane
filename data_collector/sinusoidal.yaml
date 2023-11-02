@@ -1,0 +1,67 @@
+initial_position:
+  he_range: [-20, 20]
+  cte_range: [-6, 6]
+
+num_episodes: 500
+
+##------------------XPlane server config------------------##
+xplane_server:
+  client_address: '0.0.0.0'
+  xp_host: '127.0.0.1'
+  xp_port: 49009
+  client_port: 1
+  timeout: 3000
+  resolution_x: 600
+  resolution_y: 600
+  show_display: False
+  xplane_path: '~/X-Plane-11'
+
+##------------------Experiment config------------------##
+experiment:
+  type: null
+  experiment_config:
+    cloud_type: 1
+    time_of_the_day: 13 # +5 hours (UTC)
+    gate: B19
+    airport: KATL
+    ##------------------Ego config------------------##
+    hero_config:
+      spawn_location: [3211] # [3902]
+
+ood:
+  corruption:
+    - 'None'
+  experiment_time_range: [8, 11.9]
+
+##------------------Controller server config------------------##
+controller:
+  type: 'sinusoid_controller'
+  steering:
+    turn_min: 0.05
+    turn_gain: 0.008
+    he_limit_range: [0, 25]
+    cte_bias_range: [-5, 5]
+    bias: 0.008
+    input_constraints: [-1, 1]
+  speed:
+    low_u: 0.0
+    high_u: 0.2
+    nominal_u: 0.1
+    low_speed: 3.0
+    high_speed: 5.0
+    input_constraints: [0, 1]
+
+logging:
+  log_data: True
+  use_wandb: False
+  normalization:
+    cte_constant: 10.0
+    he_constant: 30.0
+  output_dir: '../Xplane-data-dir/xplane-asl-test/sinusoids-03-08-23'
+
+debug:
+  perception: False
+
+state_estimation:
+  estimator: 'ground_truth'
+  # model_file: "data/models/taxinet03-07_21-00.pt"

@@ -2,6 +2,8 @@ from collections import deque
 
 import numpy as np
 
+from nuplane.controller import BaseController
+
 
 wrap_pi = lambda x: np.mod(x + np.pi, 2 * np.pi) - np.pi
 angle_diff = lambda x, y: wrap_pi(x - y)
@@ -132,7 +134,7 @@ class PIDLateralController:
         self._dt = dt
 
 
-class PathController:
+class PathController(BaseController):
     # Throttle command ranges from -1 to 1
     # but too low of a throttle can stall the engine
     MIN_THROTTLE = 0.0
@@ -153,6 +155,9 @@ class PathController:
         self.speed_error_integrator = 0
         self.lateral_control = PIDLateralController(dt=dt)
         self.longitudina_control = PIDLongitudinalController(dt=dt)
+
+    def reset(self):
+        pass
 
     def get_control(self, distance_next_pos, heading):
         # Get the control
