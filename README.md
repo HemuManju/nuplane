@@ -48,8 +48,9 @@ Welcome to the NASA ULI Xplane Simulator! This project aims to develop a powerfu
 1. Launch the simulator by running:
 
    ```
-   python simulator.py
+   python main.py
    ```
+   If you want to run a particular block of code, replace the `skip` by `run`.
 
 2. Explore the simulation environment, adjust settings, and start flying!
 
