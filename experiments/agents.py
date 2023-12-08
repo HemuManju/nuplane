@@ -188,3 +188,48 @@ class Hero(BaseActor):
         self.client.sendCTRL(
             [elev, aileron, rudder, throttle, gear, flaps, speed_break]
         )
+
+
+class AutolandActor(BaseActor):
+    def __init__(self, client, config=None) -> None:
+        super().__init__(client, config)
+
+    def reset(self, *args, **kwargs):
+        """Reset the actor
+
+        Raises
+        ------
+        NotImplementedError
+        """
+        raise NotImplementedError
+
+    def get_observation(self, *args, **kwargs):
+        """Get the observation from the actor.
+
+        Raises
+        ------
+        NotImplementedError
+        """
+        raise NotImplementedError
+
+    def apply_action(self, action):
+        """
+        Navigate the plane with a normalized control input directly to XPlane
+
+        Args:
+            elev - elevator flaps [-1, 1]
+            aileron - aileron flaps [-1, 1]
+            rudder - rudder steering [-1, 1]
+            throttle - throttle amount [0, 1]
+        """
+        elev, aileron, rudder, throttle = action
+        self._client.sendCTRL([elev, aileron, rudder, throttle])
+
+    def pause(self, yes=True):
+        """
+        Pause or unpause the simulation
+
+        Args:
+            yes: whether to pause or unpause the sim [default: True (i.e., pause)]
+        """
+        self._client.pauseSim(yes)
