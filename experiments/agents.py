@@ -190,11 +190,31 @@ class AutolandActor(BaseActor):
     def __init__(self, client, config=None) -> None:
         super().__init__(client, config)
 
-        # TODO: make this part of config
-        self._home_heading = 53.7
+        # Assume plane starts aligned at beginning of runway
+        self._home_heading = self.client.getDREF('sim/flightmodel/position/psi')[0]
+        # Get OpenGL coordinates so we can make this point the origin
+        # of the transformed coordinates
+        opengl_x = self.client.getDREF("sim/flightmodel/position/local_x")[0]
+        opengl_z = self.client.getDREF("sim/flightmodel/position/local_z")[0]
+        self._t = np.array((opengl_x, opengl_z)).reshape((2, 1))
 
-        # TODO: automate this somehow (maybe if you start on the ground?)
-        self._t = np.array((-25159.26953, 33689.8125)).reshape((2, 1))
+        # TODO: determine this automatically
+        #       relates to home heading and local coordinate frame at given airport
+        self._rotrad = -0.6224851011617226
+        self._R = np.array([[ np.cos(self._rotrad), -np.sin(self._rotrad) ],
+                            [ np.sin(self._rotrad),  np.cos(self._rotrad)]])
+
+        # determine elevation offset by getting difference between local y (the axis for elevation)
+        # and current elevation
+        # then use that to shift the coordinate to align with the desired elevation
+        self._start_elev = self.client.getDREF("sim/flightmodel/position/elevation")[0]
+        curr_localy = self.client.getDREF("sim/flightmodel/position/local_y")[0]
+        self.offset = self._start_elev - curr_localy
+
+    def __del__(self):
+        # the height that's on the ground at the runway
+        # in the autolanding frame
+        self._set_orient_pos(0, 0, 0, 0, 0, self._start_elev)
 
     def reset(self, *args, **kwargs):
         """Reset the actor"""
@@ -213,12 +233,6 @@ class AutolandActor(BaseActor):
         init_y=0
         init_h=1029.45
         noBrake=True
-
-        # TODO: determine this automatically
-        #       relates to home heading and local coordinate frame at given airport
-        self._rotrad = -0.6224851011617226
-        self._R = np.array([[ np.cos(self._rotrad), -np.sin(self._rotrad) ],
-                            [ np.sin(self._rotrad),  np.cos(self._rotrad)]])
 
         self.client.pauseSim(True)
 
@@ -308,13 +322,7 @@ class AutolandActor(BaseActor):
         self.client.sendDREF('sim/flightmodel/position/psi', self._to_local_heading(0))
 
         self._send_xy(x, y)
-        # set elevation by getting offset between local y (the axis for elevation)
-        # and current elevation
-        # then use that to shift the coordinate to align with the desired elevation
-        curr_elev = self.client.getDREF("sim/flightmodel/position/elevation")[0]
-        curr_localy = self.client.getDREF("sim/flightmodel/position/local_y")[0]
-        offset = curr_elev - curr_localy
-        self.client.sendDREF("sim/flightmodel/position/local_y", h - offset)
+        self.client.sendDREF("sim/flightmodel/position/local_y", h - self.offset)
 
         self.client.sendDREF('sim/flightmodel/position/phi', phi)
         self.client.sendDREF('sim/flightmodel/position/theta', theta)
