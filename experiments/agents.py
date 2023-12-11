@@ -245,6 +245,9 @@ class AutolandActor(BaseActor):
         init_x = nm_to_m(init_x_nm)
         init_h = ft_to_m(init_h_ft)
 
+        if init_h < self._start_elev:
+            raise Warning(f"Note: Initial height is below start elevation of {self._start_elev}m")
+
         self.client.pauseSim(True)
 
         # Zero out control inputs
