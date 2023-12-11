@@ -11,8 +11,9 @@ from scipy.special import comb
 
 # Geology constants
 R = 6371000  # Radius of third rock from the sun, in metres
-FT = 12 * 0.0254  # 1 FOOT = 12 INCHES
-NAUTICAL_MILE = 1.852  # Nautical mile in meters 6076.118ft=1nm
+M_FT = 0.3048  # 1 FOOT in meters
+M_NAUTICAL_MILE = 1852  # Nautical mile in meters 6076.118ft=1nm
+
 
 try:
     sys.path.append(
@@ -240,3 +241,9 @@ def bezier_curve(points, weights=None, n_points=200):
             return _weighted_bezier_curve(points, weights)
         else:
             return _weighted_bezier_curve(points, weights, n_points=n_points)
+
+def nm_to_m(dist_nm):
+    return M_NAUTICAL_MILE * dist_nm
+
+def ft_to_m(dist_ft):
+    return M_FT * dist_ft

@@ -194,9 +194,9 @@ class AutolandActor(BaseActor):
         start_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
         self._heading_offset = start_heading - self.client.getDREF("sim/flightmodel/position/mag_psi")[0]
         try:
-            self._autoland_heading = config["hero_config"]["autoland_heading_deg"]
+            self._glideslope_heading = config["hero_config"]["glideslope_heading_deg"]
         except KeyError:
-            raise RuntimeError(f"Missing heading for autolanding. Place in config['hero_config']['autoland_heading_deg']\n"
+            raise RuntimeError(f"Missing heading for autolanding. Place in config['hero_config']['glideslope_heading_deg']\n"
                                "Find the heading in the AirNav approach card online.")
 
         # Get OpenGL coordinates so we can make this point the origin
@@ -226,20 +226,24 @@ class AutolandActor(BaseActor):
     def reset(self, *args, **kwargs):
         """Reset the actor"""
 
-        # TODO: make these part of the config
-        init_u=60.
-        init_v=0
-        init_w=0.
-        init_p=0
-        init_q=0
-        init_r=0
-        init_phi=0
-        init_theta=0
-        init_psi=0
-        init_x=12464
-        init_y=0
-        init_h=1029.45
-        noBrake=True
+        hero_config = self.config["hero_config"]
+
+        init_u =     hero_config.get("init_u", 50.)
+        init_v =     hero_config.get("init_v", 0.)
+        init_w =     hero_config.get("init_w", 0.)
+        init_p =     hero_config.get("init_p", 0.)
+        init_q =     hero_config.get("init_q", 0.)
+        init_r =     hero_config.get("init_r", 0.)
+        init_phi =   hero_config.get("init_phi", 0.)
+        init_theta = hero_config.get("init_theta", 0.)
+        init_psi =   hero_config.get("init_psi", 0.)
+        init_x_nm =  hero_config.get("init_x", 7.)
+        init_y =     hero_config.get("init_y", 0.)
+        init_h_ft =  hero_config.get("init_h", 3300.)
+
+        # conversions
+        init_x = nm_to_m(init_x_nm)
+        init_h = ft_to_m(init_h_ft)
 
         self.client.pauseSim(True)
 
@@ -247,7 +251,7 @@ class AutolandActor(BaseActor):
         self.client.sendCTRL([0,0,0,0])
 
         # Set parking brake
-        self.client.sendDREF("sim/flightmodel/controls/parkbrake", int(noBrake))
+        self.client.sendDREF("sim/flightmodel/controls/parkbrake", 0)
 
         # Zero out moments and forces
         initRef = "sim/flightmodel/position/"
@@ -392,7 +396,7 @@ class AutolandActor(BaseActor):
         Convert home heading (0 deg is aligned with runway)
         to actual heading
         """
-        return self._autoland_heading - psi
+        return self._glideslope_heading - psi
 
     def _home_to_opengl_heading(self, psi):
         """
