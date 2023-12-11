@@ -191,7 +191,14 @@ class AutolandActor(BaseActor):
         super().__init__(client, config)
 
         # Assume plane starts aligned at beginning of runway
-        self._home_heading = self.client.getDREF('sim/flightmodel/position/psi')[0]
+        start_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
+        self._heading_offset = start_heading - self.client.getDREF("sim/flightmodel/position/mag_psi")[0]
+        try:
+            self._autoland_heading = config["hero_config"]["autoland_heading_deg"]
+        except KeyError:
+            raise RuntimeError(f"Missing heading for autolanding. Place in config['hero_config']['autoland_heading_deg']\n"
+                               "Find the heading in the AirNav approach card online.")
+
         # Get OpenGL coordinates so we can make this point the origin
         # of the transformed coordinates
         opengl_x = self.client.getDREF("sim/flightmodel/position/local_x")[0]
@@ -209,7 +216,7 @@ class AutolandActor(BaseActor):
         # then use that to shift the coordinate to align with the desired elevation
         self._start_elev = self.client.getDREF("sim/flightmodel/position/elevation")[0]
         curr_localy = self.client.getDREF("sim/flightmodel/position/local_y")[0]
-        self.offset = self._start_elev - curr_localy
+        self.height_offset = self._start_elev - curr_localy
 
     def __del__(self):
         # the height that's on the ground at the runway
@@ -316,22 +323,17 @@ class AutolandActor(BaseActor):
             y      - lateral deviation (m)
             h      - aircraft altitude (m)
         '''
-        # zero out orientation at first
-        self.client.sendDREF('sim/flightmodel/position/phi', 0)
-        self.client.sendDREF('sim/flightmodel/position/theta', 0)
-        self.client.sendDREF('sim/flightmodel/position/psi', self._to_local_heading(0))
-
         self._send_xy(x, y)
-        self.client.sendDREF("sim/flightmodel/position/local_y", h - self.offset)
+        self.client.sendDREF("sim/flightmodel/position/local_y", h - self.height_offset)
 
         self.client.sendDREF('sim/flightmodel/position/phi', phi)
         self.client.sendDREF('sim/flightmodel/position/theta', theta)
-        self.client.sendDREF('sim/flightmodel/position/psi', self._to_local_heading(psi))
+        self.client.sendDREF('sim/flightmodel/position/psi', self._home_to_opengl_heading(psi))
 
     def _set_orientrate_vel(self, u, v, w, p, q, r):
         # 2d rotation and flip
         uv = np.array([u, v]).reshape((2, 1))
-        hr = math.radians(self._home_heading)
+        hr = math.radians(self._home_to_opengl_heading(0))
         R = np.array([[np.cos(hr), -np.sin(hr)],[np.sin(hr), np.cos(hr)]])
         rot_uv = R@uv
         # flip direction of longitudinal velocity to put in OpenGL coordinates
@@ -379,8 +381,23 @@ class AutolandActor(BaseActor):
         x, y = np.linalg.inv(RF)@r
         return x, y
 
-    def _to_local_heading(self, psi):
+    def _actual_to_opengl_heading(self, psi):
         """
-        Convert home heading to local frame heading
+        Convert actual heading to local frame heading
         """
-        return psi + self._home_heading
+        return psi + self._heading_offset
+
+    def _home_to_actual_heading(self, psi):
+        """
+        Convert home heading (0 deg is aligned with runway)
+        to actual heading
+        """
+        return self._autoland_heading - psi
+
+    def _home_to_opengl_heading(self, psi):
+        """
+        Convert home heading (0 deg is aligned with runway)
+        to local frame (OpenGL) heading
+        """
+
+        return self._actual_to_opengl_heading(self._home_to_actual_heading(psi))
