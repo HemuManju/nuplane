@@ -8,7 +8,7 @@ airport: KMWH
 hero_config:
   # glideslope_heading_deg determines which actual heading is aligned with the runway
   # in the home reference frame used for this experiment, that heading will be 0 degrees
-  glideslope_heading_deg: 39 # approach card says 36 degrees but lined up with runway is actually 39
+  glideslope_heading_deg: 36
   # Describe initial state
   # same state space used in: https://arxiv.org/abs/2307.01925
   init_u: 60    # initial longitudinal velocity (m/s)
