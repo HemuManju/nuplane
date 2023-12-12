@@ -203,13 +203,13 @@ class AutolandActor(BaseActor):
         # of the transformed coordinates
         opengl_x = self.client.getDREF("sim/flightmodel/position/local_x")[0]
         opengl_z = self.client.getDREF("sim/flightmodel/position/local_z")[0]
+        # x = east, z = south, y = up
+        rotrad = math.radians(self._glideslope_heading)
+        # rotation is clockwise from north
+        # plus some axis flipping to align xs
+        self._R = np.array([[-np.cos(rotrad),  np.sin(rotrad) ],
+                            [ np.sin(rotrad),  np.cos(rotrad)]])
         self._t = np.array((opengl_x, opengl_z)).reshape((2, 1))
-
-        # TODO: determine this automatically
-        #       relates to home heading and local coordinate frame at given airport
-        self._rotrad = -0.6224851011617226
-        self._R = np.array([[ np.cos(self._rotrad), -np.sin(self._rotrad) ],
-                            [ np.sin(self._rotrad),  np.cos(self._rotrad)]])
 
         # determine elevation offset by getting difference between local y (the axis for elevation)
         # and current elevation
@@ -368,24 +368,15 @@ class AutolandActor(BaseActor):
         Converts autoland statevec's x, y elements to local x, z coordinates.
         Note: in local frame, y is elevation (up) so we care about x and **z** for this rotation
         """
-        # rotation to align to runway
-        # flip a sign because of x, y orientation
-        # in autoland frame, x is pointing frame the runway to the starting point
-        # and y is pointing to the right from the plane's point of view
-        F = np.array([[-1.,  0.],
-                    [ 0., 1.]])
-        r = (self._R@F)@np.array([[x], [y]]).reshape((2, 1))
+        xy = np.array([[x], [y]]).reshape((2, 1))
+        r = self._R@xy
         local_x, local_z = r + self._t
         return local_x.flatten(), local_z.flatten()
 
     def _opengl_xz_to_xy(self, local_x, local_z):
-        R = self._R
-        F = np.array([[-1.,  0.],
-                    [ 0., 1.]])
-        RF = R@F
         l = np.array([[local_x], [local_z]]).reshape((2, 1))
         r = l - self._t
-        x, y = np.linalg.inv(RF)@r
+        x, y = np.linalg.inv(self._R)@r
         return x, y
 
     def _actual_to_opengl_heading(self, psi):
