@@ -108,7 +108,7 @@ with skip_run('skip', 'explore_new_route_network') as check, check():
     ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker='o')
     plt.show()
 
-with skip_run('skip', 'explore_path_planning') as check, check():
+with skip_run('run', 'explore_path_planning') as check, check():
     config['experiment']['type'] = TaxiingExperiment
     config['experiment']['experiment_config'] = yaml.load(
         open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader

@@ -191,25 +191,21 @@ class AutolandActor(BaseActor):
         super().__init__(client, config)
 
         # Assume plane starts aligned at beginning of runway
-        start_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
-        self._heading_offset = start_heading - self.client.getDREF("sim/flightmodel/position/mag_psi")[0]
-        try:
-            self._glideslope_heading = config["hero_config"]["glideslope_heading_deg"]
-        except KeyError:
-            raise RuntimeError(f"Missing heading for autolanding. Place in config['hero_config']['glideslope_heading_deg']\n"
-                               "Find the heading in the AirNav approach card online.")
+        self._glideslope_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
+        true_psi = self.client.getDREF("sim/flightmodel/position/true_psi")[0]
+        print(f"Glideslope heading inferred to be: {self._glideslope_heading} ({true_psi} true north heading)")
 
         # Get OpenGL coordinates so we can make this point the origin
         # of the transformed coordinates
         opengl_x = self.client.getDREF("sim/flightmodel/position/local_x")[0]
         opengl_z = self.client.getDREF("sim/flightmodel/position/local_z")[0]
         # x = east, z = south, y = up
-        rotrad = math.radians(self._glideslope_heading)
+        rotrad = math.radians(-self._glideslope_heading)
         # rotation is clockwise from north
         # plus some axis flipping to align xs
-        self._R = np.array([[-np.cos(rotrad),  np.sin(rotrad) ],
+        self._R = np.array([[ np.cos(rotrad), -np.sin(rotrad) ],
                             [ np.sin(rotrad),  np.cos(rotrad)]])
-        self._t = np.array((opengl_x, opengl_z)).reshape((2, 1))
+        self._t = np.array((opengl_z, opengl_x)).reshape((2, 1))
 
         # determine elevation offset by getting difference between local y (the axis for elevation)
         # and current elevation
@@ -218,7 +214,10 @@ class AutolandActor(BaseActor):
         curr_localy = self.client.getDREF("sim/flightmodel/position/local_y")[0]
         self.height_offset = self._start_elev - curr_localy
 
-    def __del__(self):
+    def place_at_start_position(self):
+        """
+        Sets the plane back at the initial position (where the plane was when this class was initialized)
+        """
         # the height that's on the ground at the runway
         # in the autolanding frame
         self._set_orient_pos(0, 0, 0, 0, 0, self._start_elev)
@@ -359,43 +358,29 @@ class AutolandActor(BaseActor):
             x: the distance from the runway in meters
             y: the crosstrack error in meters
         """
-        local_x, local_z = self._xy_to_opengl_xz(x, y)
+        local_z, local_x = self._xy_to_opengl_zx(x, y)
         self.client.sendDREF("sim/flightmodel/position/local_x", local_x)
         self.client.sendDREF("sim/flightmodel/position/local_z", local_z)
 
-    def _xy_to_opengl_xz(self, x, y):
+    def _xy_to_opengl_zx(self, x, y):
         """
         Converts autoland statevec's x, y elements to local x, z coordinates.
         Note: in local frame, y is elevation (up) so we care about x and **z** for this rotation
         """
         xy = np.array([[x], [y]]).reshape((2, 1))
         r = self._R@xy
-        local_x, local_z = r + self._t
-        return local_x.flatten(), local_z.flatten()
+        local_z, local_x = r + self._t
+        return local_z.flatten(), local_x.flatten()
 
-    def _opengl_xz_to_xy(self, local_x, local_z):
-        l = np.array([[local_x], [local_z]]).reshape((2, 1))
+    def _opengl_zx_to_xy(self, local_z, local_x):
+        l = np.array([[local_z], [local_x]]).reshape((2, 1))
         r = l - self._t
         x, y = np.linalg.inv(self._R)@r
         return x, y
 
-    def _actual_to_opengl_heading(self, psi):
-        """
-        Convert actual heading to local frame heading
-        """
-        return psi + self._heading_offset
-
-    def _home_to_actual_heading(self, psi):
+    def _home_to_opengl_heading(self, psi):
         """
         Convert home heading (0 deg is aligned with runway)
         to actual heading
         """
-        return self._glideslope_heading - psi
-
-    def _home_to_opengl_heading(self, psi):
-        """
-        Convert home heading (0 deg is aligned with runway)
-        to local frame (OpenGL) heading
-        """
-
-        return self._actual_to_opengl_heading(self._home_to_actual_heading(psi))
+        return self._glideslope_heading + psi
