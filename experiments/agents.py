@@ -217,10 +217,20 @@ class AutolandActor(BaseActor):
     def place_at_start_position(self):
         """
         Sets the plane back at the initial position (where the plane was when this class was initialized)
+        and pauses the simulation.
         """
         # the height that's on the ground at the runway
         # in the autolanding frame
         self._set_orient_pos(0, 0, 0, 0, 0, self._start_elev)
+        self.pause(True)
+
+    @property
+    def runway_elev(self):
+        """
+        Returns the estimated runway elevation.
+        This is based on the spawn location of the plane (chosen by X-Plane).
+        """
+        return self._start_elev
 
     def reset(self, *args, **kwargs):
         """Reset the actor"""
@@ -241,10 +251,10 @@ class AutolandActor(BaseActor):
         init_h_ft =  hero_config.get("init_h", 3300.)
 
         # conversions
-        init_x = nm_to_m(init_x_nm)
-        init_h = ft_to_m(init_h_ft)
+        self._init_x = nm_to_m(init_x_nm)
+        self._init_h = ft_to_m(init_h_ft)
 
-        if init_h < self._start_elev:
+        if self._init_h < self._start_elev:
             raise Warning(f"Note: Initial height is below start elevation of {self._start_elev}m")
 
         self.client.pauseSim(True)
@@ -272,7 +282,7 @@ class AutolandActor(BaseActor):
         # Set position and orientation
         # Set known good start values
         # Note: setting position with lat/lon gets you within 0.3m. Setting local_x, local_z is more accurate)
-        self._set_orient_pos(init_phi, init_theta, init_psi, init_x, init_y, init_h)
+        self._set_orient_pos(init_phi, init_theta, init_psi, self._init_x, init_y, self._init_h)
         self._set_orientrate_vel(init_u, init_v, init_w, init_p, init_q, init_r)
 
         # Fix the plane if you "crashed" or broke something
@@ -306,6 +316,7 @@ class AutolandActor(BaseActor):
             rudder - rudder steering [-1, 1]
             throttle - throttle amount [0, 1]
         """
+        self.pause(False)
         elev, aileron, rudder, throttle = action
         self.client.sendCTRL([elev, aileron, rudder, throttle])
 
@@ -317,6 +328,78 @@ class AutolandActor(BaseActor):
             yes: whether to pause or unpause the sim [default: True (i.e., pause)]
         """
         self.client.pauseSim(yes)
+
+    ###########################################################################
+    # State estimation
+    # by default these are passthroughs -- can be overloaded in a subclass
+    ###########################################################################
+    def est_statevec(self):
+        vel  = self.est_vel_state()
+        ovel = self.est_orient_vel_state()
+        o    = self.est_orient_state()
+        pos  = self.est_pos_state()
+
+        return np.stack((vel, ovel, o, pos)).flatten()
+
+    def est_vel_state(self):
+        return self.get_vel_state()
+
+    def est_orient_vel_state(self):
+        return self.get_orient_vel_state()
+
+    def est_orient_state(self):
+        return self.get_orient_state()
+
+    def est_pos_state(self):
+        return self.get_pos_state()
+
+    ###########################################################################
+    # True state getters
+    ###########################################################################
+    def get_statevec(self):
+        """
+        Returns the state vector used in the autoland scenario
+        Based on https://arc.aiaa.org/doi/10.2514/6.2021-0998
+            u      - longitudinal velocity (m/s)
+            v      - lateral velocity (m/s)
+            w      - vertical velocity (m/s)
+            p      - roll velocity (deg/s)
+            q      - pitch velocity (deg/s)
+            r      - yaw velocity (deg/s)
+            phi    - roll angle (deg)
+            theta  - pitch angle (deg)
+            psi    - yaw angle (deg)
+            x      - horizontal distance (m)
+            y      - lateral deviation (m)
+            h      - aircraft altitude (m)
+        """
+
+        vel  = self.get_vel_state()
+        ovel = self.get_orient_vel_state()
+        o    = self.get_orient_state()
+        pos  = self.get_pos_state()
+
+        return np.stack((vel, ovel, o, pos)).flatten()
+
+    def get_vel_state(self):
+        return self._body_frame_velocity()
+
+    def get_orient_vel_state(self):
+        P = self.client.getDREF('sim/flightmodel/position/P')[0]
+        Q = self.client.getDREF('sim/flightmodel/position/Q')[0]
+        R = self.client.getDREF('sim/flightmodel/position/R')[0]
+        return np.array([P, Q, R])
+
+    def get_orient_state(self):
+        phi = self.client.getDREF('sim/flightmodel/position/phi')[0]
+        theta = self.client.getDREF('sim/flightmodel/position/theta')[0]
+        psi = self._get_home_heading()
+        return np.array([phi, theta, psi])
+
+    def get_pos_state(self):
+        x, y = self._get_home_xy()
+        h = self.client.getDREF('sim/flightmodel/position/elevation')[0]
+        return np.array([x, y, h])
 
     def _set_orient_pos(self, phi, theta, psi, x, y, h):
         '''
@@ -375,8 +458,9 @@ class AutolandActor(BaseActor):
     def _opengl_zx_to_xy(self, local_z, local_x):
         l = np.array([[local_z], [local_x]]).reshape((2, 1))
         r = l - self._t
-        x, y = np.linalg.inv(self._R)@r
-        return x, y
+        xy = np.linalg.inv(self._R)@r
+        xy = xy.flatten()
+        return xy[0], xy[1]
 
     def _home_to_opengl_heading(self, psi):
         """
@@ -384,3 +468,61 @@ class AutolandActor(BaseActor):
         to actual heading
         """
         return self._glideslope_heading + psi
+
+    ###########################################################################
+    # Helper functions
+    ###########################################################################
+    def _body_frame_velocity(self):
+        cos = math.cos
+        sin = math.sin
+
+        psi = self.client.getDREF('sim/flightmodel/position/psi')[0]
+        theta = self.client.getDREF('sim/flightmodel/position/theta')[0]
+        phi = self.client.getDREF('sim/flightmodel/position/phi')[0]
+
+        h = math.radians(psi)
+        Rh = np.array([[ cos(h), sin(h), 0],
+                    [-sin(h), cos(h), 0],
+                    [      0,      0,  1]])
+        el = math.radians(theta)
+        Re = np.array([[cos(el), 0, -sin(el)],
+                    [      0, 1,        0],
+                    [sin(el),  0,  cos(el)]])
+        roll = math.radians(phi)
+        Rr = np.array([[1,          0,         0],
+                    [0,  cos(roll), sin(roll)],
+                    [0, -sin(roll), cos(roll)]])
+        R = np.matmul(Rr, np.matmul(Re, Rh))
+
+        vx = self.client.getDREF('sim/flightmodel/position/local_vx')[0]
+        vy = self.client.getDREF('sim/flightmodel/position/local_vy')[0]
+        vz = self.client.getDREF('sim/flightmodel/position/local_vz')[0]
+        # local frame is East-Up-South and we convert to North-East-Down
+        vel_vec = np.array([-vz, vx, -vy]).T
+
+        return np.matmul(R, vel_vec)
+
+    def _get_home_heading(self):
+        """
+        Get the value of the aircraft's heading in degrees from the runway
+        """
+        true_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
+        return true_heading - self._glideslope_heading
+
+    def _get_local_heading(self):
+        """
+        Get the value of the aircraft's heading in degrees from the Z axis
+        """
+        return self.client.getDREF("sim/flightmodel/position/psi")[0]
+
+    def _get_home_xy(self):
+        """
+        Get the aircraft's current x and y position and heading in the
+        home frame. The x-value represents crosstrack error,the y-value represents
+        downtrack position, and theta is the heading error.
+        """
+
+        local_x = self.client.getDREF("sim/flightmodel/position/local_x")[0]
+        local_z = self.client.getDREF("sim/flightmodel/position/local_z")[0]
+
+        return self._opengl_zx_to_xy(local_z, local_x)

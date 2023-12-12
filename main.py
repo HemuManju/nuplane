@@ -1,5 +1,6 @@
 import yaml
 import time
+import math
 import networkx as nx
 import osmnx as ox
 
@@ -9,8 +10,11 @@ from nuplane.core import kill_all_servers
 from nuplane.utils.transform import get_bearing
 
 
+from nuplane.control.glideslope_controller import GlideSlopeController
 from nuplane.env import NUPlaneEnv
+from nuplane.utils.transform import ft_to_m
 
+from experiments.auto_landing.auto_landing_experiment import AutoLandingExperiment
 from experiments.taxiing.control.controllers import PathController
 from experiments.taxiing.navigation.path_planner import PathPlanner
 from experiments.taxiing.taxi_experiment import TaxiingExperiment
@@ -108,7 +112,7 @@ with skip_run('skip', 'explore_new_route_network') as check, check():
     ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker='o')
     plt.show()
 
-with skip_run('run', 'explore_path_planning') as check, check():
+with skip_run('skip', 'explore_path_planning') as check, check():
     config['experiment']['type'] = TaxiingExperiment
     config['experiment']['experiment_config'] = yaml.load(
         open('experiments/taxiing/experiment_config.yaml'), Loader=yaml.SafeLoader
@@ -246,3 +250,43 @@ with skip_run('skip', 'data_collector') as check, check():
 
     data_collector = DataCollector(config=config, write_path=None)
     data_collector.write_loop()
+
+with skip_run('run', 'auto_land_kmwh') as check, check():
+    try:
+        experiment_config = yaml.load(open('experiments/auto_landing/experiment_config.yaml'),
+                                                            Loader=yaml.SafeLoader)
+        config['experiment'] = {'type': AutoLandingExperiment,
+                                'experiment_config': experiment_config}
+
+        print(f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration.")
+
+        core = XPlaneCore(config)
+        exp = AutoLandingExperiment(config, core)
+        exp.reset()
+
+        dt = experiment_config['sim_config']['dt']
+        gsc = GlideSlopeController(gamma=3.,
+                                tch=experiment_config['hero_config']['tch'],
+                                dt=dt,
+                                runway_elev=exp.actor.runway_elev)
+
+        # land the plane using full state knowledge
+        max_time = 1000
+
+        for step in range(math.ceil(max_time/dt)):
+            obs, _ = exp.get_observation({}, core)
+            action = gsc.control(obs)
+            exp.apply_actions(action, core)
+            if exp.get_done_status(obs, core):
+                print("Successfully landed.")
+                core.client.pauseSim(True)
+                time.sleep(5)
+                break
+        print("Ran out of time.")
+    except KeyboardInterrupt:
+        print("Stopping due to user interrupt.")
+    finally:
+        print('Placing plane back at start location.\n'
+            'This allows re-running the script without restarting X-Plane')
+        time.sleep(5)
+        exp.actor.place_at_start_position()
