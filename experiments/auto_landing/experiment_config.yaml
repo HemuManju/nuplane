@@ -21,7 +21,7 @@ hero_config:
   init_y: 0     # initial crosstrack error (m)
   init_h: 3300  # initial height (ft) -- from AirNav approach card
 
-  tch: 50       # threshold crossing height (how high to be above runway) from approach card
+  tch: 50       # threshold crossing height (ft) aka how high to be above runway from approach card
 
 sim_config:
   dt: 0.1       # the sampling period

@@ -75,10 +75,10 @@ class AutoLandingExperiment(BaseExperiment):
 
     def _est_if_landed(self):
         x, y, h = self.actor.get_pos_state()
-        if x > 0 or y > 10:
+        if x > -10 or y > 10:
             # not past runway or crosstrack error too high
             return False
-        if h > self.actor._start_elev + 5:
+        if h > self.actor._start_elev + 0.2:
             # if not close to ground, then not done
             return False
 

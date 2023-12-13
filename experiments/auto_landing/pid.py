@@ -25,4 +25,8 @@ class PID:
 
         return p + i + d
 
+    def reset(self):
+        self._prev_error = 0.0
+        self._integral   = 0.0
+
 
