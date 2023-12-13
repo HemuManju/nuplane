@@ -1,5 +1,6 @@
 import yaml
 import time
+import math
 import networkx as nx
 import osmnx as ox
 
@@ -10,7 +11,10 @@ from nuplane.utils.transform import get_bearing
 
 
 from nuplane.env import NUPlaneEnv
+from nuplane.utils.transform import ft_to_m
 
+from experiments.auto_landing.auto_landing_experiment import AutoLandingExperiment
+from experiments.auto_landing.glideslope_controller import GlideSlopeController
 from experiments.taxiing.control.controllers import PathController
 from experiments.taxiing.navigation.path_planner import PathPlanner
 from experiments.taxiing.taxi_experiment import TaxiingExperiment
@@ -246,3 +250,46 @@ with skip_run('skip', 'data_collector') as check, check():
 
     data_collector = DataCollector(config=config, write_path=None)
     data_collector.write_loop()
+
+with skip_run('run', 'auto_land_kmwh') as check, check():
+    # First launch X-Plane and start a Cessna 172SP at Grant County International Airport (KMWH) Runway 04
+    # Note: you can also choose another airport and update the experiment configuration accordingly
+    experiment_config = yaml.load(open('experiments/auto_landing/experiment_config.yaml'),
+                                  Loader=yaml.SafeLoader)
+    config['experiment'] = {'type': AutoLandingExperiment,
+                            'experiment_config': experiment_config}
+    print(f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration.")
+    core = XPlaneCore(config)
+
+    try:
+        exp = AutoLandingExperiment(config, core)
+        exp.reset()
+
+        dt = experiment_config['sim_config']['dt']
+        gsc = GlideSlopeController(dt)
+        gamma = 3.
+        tch = ft_to_m(experiment_config['hero_config']['tch'])
+        runway_elev = exp.actor.runway_elev
+        des_u = 50.
+        gsc.set_reference([gamma, tch, runway_elev, des_u])
+
+        # land the plane using full state knowledge
+        max_steps = 10000
+        for step in range(max_steps):
+            obs, _ = exp.get_observation({}, core)
+            action = gsc.get_input(obs)
+            exp.apply_actions(action, core)
+            if exp.get_done_status(obs, core):
+                print("Successfully landed.")
+                time.sleep(5)
+                core.client.pauseSim(True)
+                break
+        if step >= max_steps:
+            print("Ran out of time.")
+    except KeyboardInterrupt:
+        print("Stopping due to user interrupt.")
+    finally:
+        print('Placing plane back at start location.\n'
+            'This allows re-running the script without restarting X-Plane')
+        time.sleep(5)
+        exp.actor.place_at_start_position()

@@ -1,0 +1,28 @@
+##------------------Experiment config------------------##
+cloud_type: 1
+time_of_the_day: 13 # +5 hours (UTC)
+runway: 04
+airport: KMWH
+
+##------------------Ego config------------------##
+hero_config:
+  # Describe initial state
+  # same state space used in: https://arxiv.org/abs/2307.01925
+  init_u: 60    # initial longitudinal velocity (m/s)
+  init_v: 0     # initial lateral velocity (m/s)
+  init_w: 0     # initial vertical velocity (m/s)
+  init_p: 0     # initial roll velocity (deg/s)
+  init_q: 0     # initial pitch velocity (deg/s)
+  init_r: 0     # initial yaw velocity (deg/s)
+  init_phi: 0   # initial roll angle (deg)
+  init_theta: 0 # initial pitch angle (deg)
+  init_psi: 0   # initial heading (deg) -- in the home reference frame
+  init_x: 7     # initial distance from runway (nautical miles) -- from AirNav approach card
+  init_y: 0     # initial crosstrack error (m)
+  init_h: 3300  # initial height (ft) -- from AirNav approach card
+
+  tch: 50       # threshold crossing height (ft) aka how high to be above runway from approach card
+
+sim_config:
+  dt: 0.1       # the sampling period
+
