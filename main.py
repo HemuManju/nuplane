@@ -251,16 +251,17 @@ with skip_run('skip', 'data_collector') as check, check():
     data_collector = DataCollector(config=config, write_path=None)
     data_collector.write_loop()
 
-with skip_run('run', 'auto_land_kmwh') as check, check():
+with skip_run('skip', 'auto_land_kmwh') as check, check():
+    # First launch X-Plane and start a Cessna 172SP at Grant County International Airport (KMWH) Runway 04
+    # Note: you can also choose another airport and update the experiment configuration accordingly
+    experiment_config = yaml.load(open('experiments/auto_landing/experiment_config.yaml'),
+                                  Loader=yaml.SafeLoader)
+    config['experiment'] = {'type': AutoLandingExperiment,
+                            'experiment_config': experiment_config}
+    print(f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration.")
+    core = XPlaneCore(config)
+
     try:
-        experiment_config = yaml.load(open('experiments/auto_landing/experiment_config.yaml'),
-                                                            Loader=yaml.SafeLoader)
-        config['experiment'] = {'type': AutoLandingExperiment,
-                                'experiment_config': experiment_config}
-
-        print(f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration.")
-
-        core = XPlaneCore(config)
         exp = AutoLandingExperiment(config, core)
         exp.reset()
 
