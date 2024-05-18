@@ -203,7 +203,6 @@ with skip_run("skip", "image_data_feed") as check, check():
         open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
     )
 
-    import numpy as np
     import matplotlib.pyplot as plt
 
     core = XPlaneCore(config, debug=True)
@@ -255,27 +254,31 @@ with skip_run("skip", "data_collector") as check, check():
     data_collector = DataCollector(config=config, write_path=None)
     data_collector.write_loop()
 
-<<<<<<< Updated upstream
-with skip_run('run', 'auto_land_kmwh') as check, check():
+with skip_run("run", "auto_land_kmwh") as check, check():
     # First launch X-Plane and start a Cessna 172SP at Grant County International Airport (KMWH) Runway 04
     # Note: you can also choose another airport and update the experiment configuration accordingly
-    experiment_config = yaml.load(open('experiments/auto_landing/experiment_config.yaml'),
-                                  Loader=yaml.SafeLoader)
-    config['experiment'] = {'type': AutoLandingExperiment,
-                            'experiment_config': experiment_config}
-    print(f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration.")
+    experiment_config = yaml.load(
+        open("experiments/auto_landing/experiment_config.yaml"), Loader=yaml.SafeLoader
+    )
+    config["experiment"] = {
+        "type": AutoLandingExperiment,
+        "experiment_config": experiment_config,
+    }
+    print(
+        f"Airport set to {config['experiment']['experiment_config']['airport']} by configuration."
+    )
     core = XPlaneCore(config)
 
     try:
         exp = AutoLandingExperiment(config, core)
         exp.reset()
 
-        dt = experiment_config['sim_config']['dt']
+        dt = experiment_config["sim_config"]["dt"]
         gsc = GlideSlopeController(dt)
-        gamma = 3.
-        tch = ft_to_m(experiment_config['hero_config']['tch'])
+        gamma = 3.0
+        tch = ft_to_m(experiment_config["hero_config"]["tch"])
         runway_elev = exp.actor.runway_elev
-        des_u = 50.
+        des_u = 50.0
         gsc.set_reference([gamma, tch, runway_elev, des_u])
 
         # land the plane using full state knowledge
@@ -294,54 +297,9 @@ with skip_run('run', 'auto_land_kmwh') as check, check():
     except KeyboardInterrupt:
         print("Stopping due to user interrupt.")
     finally:
-        print('Placing plane back at start location.\n'
-            'This allows re-running the script without restarting X-Plane')
+        print(
+            "Placing plane back at start location.\n"
+            "This allows re-running the script without restarting X-Plane"
+        )
         time.sleep(5)
         exp.actor.place_at_start_position()
-=======
-with skip_run("skip", "read_tga") as check, check():
-    config["experiment"]["type"] = TaxiingExperiment
-    config["experiment"]["experiment_config"] = yaml.load(
-        open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
-    )
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import csv
-
-    # core = XPlaneCore(config, debug=True)
-
-    # for i in range(100):
-    #     data = core.client.getIMG()
-    #     with open("out.csv", "w") as myfile:
-    #         wr = csv.writer(myfile, delimiter=",", quoting=csv.QUOTE_ALL)
-    #         wr.writerow(list(data))
-    #     # image = np.array(data, dtype=np.uint8).reshape((120, 120))
-
-    file_path = "/home/hemanth/X-Plane-11/test.tga"
-    from PIL import Image
-
-    image = Image.open(file_path)
-
-    I = np.asarray(image)  # noqa: E741
-    plt.imshow(I[:, :, 0], cmap="gray", vmin=0, vmax=255)
-    plt.show()
-    print(I[:, :, 0])
-
-    # Read from saved data
-    # I = np.genfromtxt("out.csv", delimiter=",").reshape((120, 120))
-    # print(I)
-
-    # Read from saved data
-    # I = np.genfromtxt(
-    #     "/home/hemanth/X-Plane-11/test_from_c.csv", delimiter=","
-    # ).reshape((120, 120))
-    # print(I)
-
-    I = np.fromfile("/home/hemanth/X-Plane-11/test_from_c1.bin", dtype="uint8").reshape(
-        120, 120
-    )
-    plt.imshow(I, cmap="gray", vmin=0, vmax=255)
-    plt.show()
-    print(I)
->>>>>>> Stashed changes
