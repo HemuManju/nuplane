@@ -1,6 +1,6 @@
 import socket
 import struct
-import math
+import numpy as np
 
 
 class XPlaneConnect(object):
@@ -9,7 +9,7 @@ class XPlaneConnect(object):
     socket = None
 
     # Basic Functions
-    def __init__(self, xpHost='localhost', xpPort=49009, port=0, timeout=5000):
+    def __init__(self, xpHost="localhost", xpPort=49009, port=0, timeout=5000):
         """Sets up a new connection to an X-Plane Connect plugin running in X-Plane.
 
         Args:
@@ -71,7 +71,7 @@ class XPlaneConnect(object):
 
     def readUDP(self):
         """Reads a message from the underlying UDP socket."""
-        return self.socket.recv(16384)
+        return self.socket.recv(4096 * 5)
 
     # Configuration
     def setCONN(self, port):
@@ -325,6 +325,41 @@ class XPlaneConnect(object):
         # Send
         self.sendUDP(buffer)
 
+    def getIMG(self):
+        # Properties
+        offset = 7
+        n = 16
+        buf_unit = 1024
+        image_height = 96
+        image_width = 170
+        image_size = image_height * image_width
+        size = buf_unit * n * 4 + offset
+
+        # Send request and collect all the
+        image = np.zeros((128, 255, 3))
+        for i, color in enumerate(["red", "green", "blue"]):
+            result = []
+            for chunk in ["0_50", "50_100"]:
+                dref = f"nuplane/camera_{color}_{chunk}"
+                buffer = struct.pack(b"<4sxB", b"GETD", n)
+                fmt = "<B{0:d}s".format(len(dref))
+                buffer += struct.pack(fmt.encode(), len(dref), dref.encode())
+
+                # Send the message
+                self.socket.sendto(buffer, 0, self.xpDst)
+
+                # Read, parse, and unpack the response
+                buffer = self.socket.recv(size)
+                fmt = "<{0:d}f".format(image_size)
+                result.append(struct.unpack_from(fmt.encode(), buffer, offset))
+
+            # Combine them
+            result = [element for tupl in result for element in tupl]
+
+            # Reshape and store
+            image[:, :, i] = np.array(result).reshape(128, 255)
+        return image.astype(int)
+
     def getDREF(self, dref):
         """Gets the value of an X-Plane dataref.
 
@@ -381,7 +416,7 @@ class XPlaneConnect(object):
         if y < -1:
             raise ValueError("y must be greater than or equal to -1.")
 
-        if msg == None:
+        if msg is None:
             msg = ""
 
         msgLen = len(msg)
@@ -441,7 +476,7 @@ class XPlaneConnect(object):
                 b"WYPT",
                 op,
                 len(points),
-                *points
+                *points,
             )
         self.sendUDP(buffer)
 

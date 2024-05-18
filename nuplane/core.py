@@ -32,7 +32,7 @@ def is_used(port):
 
 def kill_all_servers():
     """Kill all PIDs that start with XPlane"""
-    processes = [p for p in psutil.process_iter() if 'Main Thread' in p.name()]
+    processes = [p for p in psutil.process_iter() if "Main Thread" in p.name()]
     for process in processes:
         os.kill(process.pid, signal.SIGKILL)
 
@@ -70,7 +70,7 @@ class XPlaneCore:
         )
         if not os.path.exists(xplane_bin):
             xplane_bin_orig = xplane_bin
-            xplane_bin = xplane_bin.replace('X-Plane-11', "X-Plane 11")
+            xplane_bin = xplane_bin.replace("X-Plane-11", "X-Plane 11")
             if not os.path.exists(xplane_bin):
                 raise ValueError(
                     f"Could not find X-Plane binary at: \n{xplane_bin_orig} or \n{xplane_bin}"
@@ -93,7 +93,7 @@ class XPlaneCore:
 
         for i in range(self.config["retries_on_error"]):
             try:
-                self.client = XPlaneConnect()
+                self.client = XPlaneConnect(xpPort=49009)
 
                 # Create a timer
                 self.t_start = self.client.getDREF("sim/time/local_time_sec")[0]
@@ -113,10 +113,10 @@ class XPlaneCore:
         """Initialize the hero and sensors"""
         # Set weather and time of the day
         self.client.sendDREF(
-            'sim/weather/cloud_type[0]', experiment_config['cloud_type']
+            "sim/weather/cloud_type[0]", experiment_config["cloud_type"]
         )
         self.client.sendDREF(
-            'sim/time/zulu_time_sec', experiment_config['time_of_the_day'] * 60 * 60
+            "sim/time/zulu_time_sec", experiment_config["time_of_the_day"] * 60 * 60
         )
 
     def reset(self, *args, **kwargs):
