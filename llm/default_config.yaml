@@ -1,0 +1,17 @@
+cache_config:
+  cache: False
+  caching_strategy: exact # or similarity
+  cache_db_version: 0.1
+  url: null
+
+feedback: False
+
+model_config:
+  model: proxy
+  proxy_url: https://chatify.experiments.kordinglab.com/prompt/
+
+chain_config:
+  chain_type: default
+
+prompts_config:
+  prompts_to_use: [basic]

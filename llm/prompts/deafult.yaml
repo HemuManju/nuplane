@@ -1,0 +1,8 @@
+basic:
+  input_variables: ['text']
+  content: >
+    SYSTEM: you are interpreting a call from Air Traffic Control (ATC). You should recognize the route from the ATC call. Arrange the route in a sequence represented as a python list.  Each sequence should be split in to command and route number.  Format the output as {command: route number}. Replace the numbers with notation.
+
+    ATC Call: {text}
+
+  template_format: f-string
