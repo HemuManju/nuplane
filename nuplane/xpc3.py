@@ -23,7 +23,7 @@ class XPlaneConnect(object):
         xpIP = None
         try:
             xpIP = socket.gethostbyname(xpHost)
-        except:
+        except ValueError:
             raise ValueError("Unable to resolve xpHost.")
 
         if xpPort < 0 or xpPort > 65535:
@@ -71,7 +71,7 @@ class XPlaneConnect(object):
 
     def readUDP(self):
         """Reads a message from the underlying UDP socket."""
-        return self.socket.recv(4096 * 5)
+        return self.socket.recv(16384)
 
     # Configuration
     def setCONN(self, port):

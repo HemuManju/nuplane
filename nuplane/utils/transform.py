@@ -18,20 +18,16 @@ M_NAUTICAL_MILE = 1852  # Nautical mile in meters 6076.118ft=1nm
 try:
     sys.path.append(
         glob.glob(
-            '../XPlane/dist/XPlane-*%d.%d-%s.egg'
+            "../XPlane/dist/XPlane-*%d.%d-%s.egg"
             % (
                 sys.version_info.major,
                 sys.version_info.minor,
-                'win-amd64' if os.name == 'nt' else 'linux-x86_64',
+                "win-amd64" if os.name == "nt" else "linux-x86_64",
             )
         )[0]
     )
 except IndexError:
     pass
-
-from datetime import datetime
-import re
-import socket
 
 
 def join_dicts(d, u):
@@ -103,11 +99,11 @@ def linear_refine_implicit(x, n):
 
 def haversine_distance(p1, p2):  # in radians.
     try:
-        lat1, lat2 = math.radians(p1['lat']), math.radians(p2['lat'])
-        long1, long2 = math.radians(p1['lon']), math.radians(p2['lon'])
+        lat1, lat2 = math.radians(p1["lat"]), math.radians(p2["lat"])
+        long1, long2 = math.radians(p1["lon"]), math.radians(p2["lon"])
     except KeyError:
-        lat1, lat2 = math.radians(p1['x']), math.radians(p2['x'])
-        long1, long2 = math.radians(p1['y']), math.radians(p2['y'])
+        lat1, lat2 = math.radians(p1["x"]), math.radians(p2["x"])
+        long1, long2 = math.radians(p1["y"]), math.radians(p2["y"])
 
     dlat, dlong = lat2 - lat1, long2 - long1
     a = math.pow(math.sin(dlat / 2), 2) + math.cos(lat1) * math.cos(lat2) * math.pow(
@@ -242,8 +238,10 @@ def bezier_curve(points, weights=None, n_points=200):
         else:
             return _weighted_bezier_curve(points, weights, n_points=n_points)
 
+
 def nm_to_m(dist_nm):
     return M_NAUTICAL_MILE * dist_nm
+
 
 def ft_to_m(dist_ft):
     return M_FT * dist_ft

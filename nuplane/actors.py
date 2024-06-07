@@ -1,10 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from future.utils import with_metaclass
 
-import math
-
-import time
-
 
 class BaseActor(with_metaclass(ABCMeta, object)):
     def __init__(self, client, config=None) -> None:
@@ -41,4 +37,3 @@ class BaseActor(with_metaclass(ABCMeta, object)):
         NotImplementedError
         """
         raise NotImplementedError
-

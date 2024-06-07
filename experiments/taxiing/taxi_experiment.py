@@ -17,14 +17,14 @@ class TaxiingExperiment(BaseExperiment):
     def _initial_setup(self):
         G = self.core.map.get_node_graph()
         spawn_points = yaml.load(
-            open('config/spawn_points.yaml'), Loader=yaml.SafeLoader
+            open("config/spawn_points.yaml"), Loader=yaml.SafeLoader
         )
         num = 6
-        start = spawn_points[num]['start']
-        end = spawn_points[num]['end']
-        start_node = ox.distance.nearest_nodes(G, X=start['x'], Y=start['y'])
-        end_node = ox.distance.nearest_nodes(G, X=end['x'], Y=end['y'])
-        self.config['hero_config']['spawn_location'] = [start_node]
+        start = spawn_points[num]["start"]
+        end = spawn_points[num]["end"]
+        start_node = ox.distance.nearest_nodes(G, X=start["x"], Y=start["y"])
+        end_node = ox.distance.nearest_nodes(G, X=end["x"], Y=end["y"])
+        self.config["hero_config"]["spawn_location"] = [start_node]
 
         # Setup path planner
         self.path_planner = PathPlanner(self.core.map)
@@ -32,7 +32,7 @@ class TaxiingExperiment(BaseExperiment):
         self.path_planner.set_route(route_lat_lon)
 
         # Setup hero
-        self.hero = Hero(self.core.client, self.config['hero_config'])
+        self.hero = Hero(self.core.client, self.config["hero_config"])
         if self.hero.map is None:
             self.hero.map = self.core.map
 

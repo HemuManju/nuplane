@@ -13,11 +13,22 @@ xplane_server:
 ##------------------Experiment config------------------##
 experiment:
   type: null
-  experiment_config: null
+  experiment_config:
+    cloud_type: 1
+    time_of_the_day: 13 # +5 hours (UTC)
+    gate: B19
+    airport: KATL
 
 ##------------------Ego config------------------##
 hero_config:
   spawn_location: [3211] # [3902]
+
+##------------------Sensor config------------------##
+sensors:
+  rgb:
+    type: 'sensor.camera.rgb'
+    image_size_x: 256
+    image_size_y: 256
 
 ##------------------Datawriter config------------------##
 

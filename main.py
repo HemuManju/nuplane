@@ -1,6 +1,5 @@
 import yaml
 import time
-import math
 import networkx as nx
 import osmnx as ox
 
@@ -12,6 +11,11 @@ from nuplane.utils.transform import get_bearing
 
 from nuplane.env import NUPlaneEnv
 from nuplane.utils.transform import ft_to_m
+from nuplane.utils.airport_parser import (
+    parse_airport_route_network,
+    parse_airport_network,
+)
+from nuplane.maps import Map
 
 from experiments.auto_landing.auto_landing_experiment import AutoLandingExperiment
 from experiments.auto_landing.glideslope_controller import GlideSlopeController
@@ -74,19 +78,72 @@ with skip_run("skip", "explore_route_network") as check, check():
     core = XPlaneCore(config, debug=True)
     G = core.map.get_node_graph()
 
-    street_per_node = ox.stats.count_streets_per_node(G)
+    spawn_points = yaml.load(open("config/spawn_points.yaml"), Loader=yaml.SafeLoader)
+    num = 6
+    start = spawn_points[num]["start"]
+    end = spawn_points[num]["end"]
 
-    start = config["hero_config"]["spawn_location"][0]
-    end = 1034
-    node_info = core.map.get_node_info(start)
-    start = ox.distance.nearest_nodes(G, X=node_info["x"], Y=node_info["y"])
-    route = nx.shortest_path(G, start, end, weight="length")
+    start_node = ox.distance.nearest_nodes(G, X=start["x"], Y=start["y"])
+    end_node = ox.distance.nearest_nodes(G, X=end["x"], Y=end["y"])
+
+    route = nx.shortest_path(G, start_node, end_node, weight="length")
     path_planner = PathPlanner(core.map)
-    new_lat_lon = path_planner.find_path(start, end, n_splits=1)
+    new_lat_lon = path_planner.find_path(start_node, end_node, n_splits=1)
 
     fig, ax = ox.plot_graph_route(G, route, show=False, close=False)
     ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker="o")
     plt.show()
+
+with skip_run("skip", "explore_route_network") as check, check():
+    airport_id = config["experiment"]["experiment_config"]["airport"]
+    G = parse_airport_route_network(airport_id)
+
+    airport_map = Map(client=None, config=config)
+
+    airport_map._setup_taxi_network(config)
+    test_graph = airport_map._convert_taxi_network_to_osmnx_graph(
+        airport_map.taxi_network, airport_id
+    )
+    test_G = airport_map._convert_taxi_network_to_graph(airport_map.taxi_network)
+    fig, ax = ox.plot_graph(test_G, show=False, close=False)
+    for u, v, data in test_G.edges(data=True):
+        edge_label = data["name"]
+        ax.annotate(
+            edge_label,
+            xy=(data["start_node_coord"]["lon"], data["start_node_coord"]["lat"]),
+            xytext=(3, 3),
+            textcoords="offset points",
+            color="r",
+        )
+
+    spawn_points = yaml.load(open("config/spawn_points.yaml"), Loader=yaml.SafeLoader)
+    num = 8
+    start = spawn_points[num]["start"]
+    end = spawn_points[num]["end"]
+
+    start_node = ox.distance.nearest_nodes(G, X=start["x"], Y=start["y"])
+    end_node = ox.distance.nearest_nodes(G, X=end["x"], Y=end["y"])
+
+    # route = nx.shortest_path(G, start_node, end_node, weight="length")
+    # path_planner = PathPlanner(airport_map)
+    # new_lat_lon = path_planner.find_path(start_node, end_node, n_splits=1)
+
+    # fig, ax = ox.plot_graph_route(G, route, show=False, close=False)
+    # ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker="o", zorder=2)
+    # # plt.show()
+
+    G = parse_airport_network(airport_id, feature="runways")
+    G.plot(color="y", ax=ax, zorder=1)
+
+    # Plot taxiway and runways
+    G = parse_airport_network(airport_id, feature="pavements")
+    G.plot(color="g", ax=ax, zorder=0, categorical=True, cmap="RdPu")
+
+    plt.show()
+
+    # fig, ax = ox.plot_graph_route(G, route, show=False, close=False)
+    # ax.plot(new_lat_lon[:, 1], new_lat_lon[:, 0], marker="o")
+    # plt.show()
 
 with skip_run("skip", "explore_new_route_network") as check, check():
     core = XPlaneCore(config, debug=True)
@@ -118,17 +175,16 @@ with skip_run("skip", "explore_path_planning") as check, check():
         open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
     )
 
-    core = XPlaneCore(config)
+    core = XPlaneCore(config, debug=False)
     G = core.map.get_node_graph()
 
     spawn_points = yaml.load(open("config/spawn_points.yaml"), Loader=yaml.SafeLoader)
-    num = 2
+    num = 6
     start = spawn_points[num]["start"]
     end = spawn_points[num]["end"]
 
     start_node = ox.distance.nearest_nodes(G, X=start["x"], Y=start["y"])
     end_node = ox.distance.nearest_nodes(G, X=end["x"], Y=end["y"])
-
     config["hero_config"]["spawn_location"] = [start_node]
 
     # Path planning
@@ -160,13 +216,13 @@ with skip_run("skip", "explore_path_planning") as check, check():
 
     hero.apply_action([0, 0, 0, 0, 0, 0, 1.5, 1])
 
-with skip_run("skip", "taxiing_experiment_video") as check, check():
+with skip_run("skip", "taxiing_experiment") as check, check():
     # Setup the environment and experiment
     config["experiment"]["type"] = TaxiingExperiment
     config["experiment"]["experiment_config"] = yaml.load(
         open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
     )
-    xplane_env = NUPlaneEnv(config, debug=True)
+    xplane_env = NUPlaneEnv(config)
     obs, reward, done, info = xplane_env.reset()
 
     # Controller or RL
@@ -181,6 +237,47 @@ with skip_run("skip", "taxiing_experiment_video") as check, check():
     while not done:
         i += 1
         control = controller.get_control(obs[0], obs[1])
+
+        # Apply control
+        obs, reward, done, info = xplane_env.step(control)
+
+with skip_run("skip", "image_data_feed") as check, check():
+    config["experiment"]["type"] = TaxiingExperiment
+    config["experiment"]["experiment_config"] = yaml.load(
+        open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
+    )
+
+    import matplotlib.pyplot as plt
+
+    core = XPlaneCore(config, debug=True)
+
+    while 1:
+        image = core.client.getIMG()
+        plt.imshow(image, origin="lower")
+        plt.pause(0.0001)
+
+with skip_run("skip", "taxiing_experiment_video") as check, check():
+    # Setup the environment and experiment
+    config["experiment"]["type"] = TaxiingExperiment
+    config["experiment"]["experiment_config"] = yaml.load(
+        open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
+    )
+    xplane_env = NUPlaneEnv(config, debug=False)
+    obs, reward, done, info = xplane_env.reset()
+
+    # Controller or RL
+    controller = PathController(agent=xplane_env.experiment.hero)
+    i = 0
+
+    t = 1000
+    xplane_env.core.client.sendDREF("sim/weather/rain_percent", 1.0)
+    xplane_env.core.client.sendDREF("sim/weather/cloud_base_msl_m[1]", 750000)
+    xplane_env.core.client.sendDREF("sim/graphics/scenery/airport_light_level", 1)
+
+    while not done:
+        i += 1
+        control = controller.get_control(obs[0], obs[1])
+        print(i)
 
         # Apply control
         obs, reward, done, info = xplane_env.step(control)
@@ -254,7 +351,7 @@ with skip_run("skip", "data_collector") as check, check():
     data_collector = DataCollector(config=config, write_path=None)
     data_collector.write_loop()
 
-with skip_run("run", "auto_land_kmwh") as check, check():
+with skip_run("skip", "auto_land_kmwh") as check, check():
     # First launch X-Plane and start a Cessna 172SP at Grant County International Airport (KMWH) Runway 04
     # Note: you can also choose another airport and update the experiment configuration accordingly
     experiment_config = yaml.load(

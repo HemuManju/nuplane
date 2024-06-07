@@ -40,7 +40,7 @@ class PIDLongitudinalController:
         """
 
         if debug:
-            print('Current speed = {}'.format(current_speed))
+            print("Current speed = {}".format(current_speed))
 
         return self._pid_control(target_speed, current_speed)
 
@@ -137,7 +137,7 @@ class PIDLateralController:
 class PathController(BaseController):
     # Throttle command ranges from -1 to 1
     # but too low of a throttle can stall the engine
-    MIN_THROTTLE = 0.0
+    MIN_THROTTLE = -1.0
 
     def __init__(self, agent, dt=0.1, *args, **kwargs):
         self.agent = agent
@@ -167,7 +167,7 @@ class PathController(BaseController):
 
         # Calculate steering
         heading_error = angle_diff(
-            heading * np.pi / 180, state['true_psi'] * np.pi / 180
+            heading * np.pi / 180, state["true_psi"] * np.pi / 180
         )
         self.steering = self.lateral_control.run_step(heading_error)
 
@@ -180,10 +180,10 @@ class PathController(BaseController):
         target_speed = min(self.max_speed, distance_next_pos * self.dt * 5)
 
         self.throttle = self.longitudina_control.run_step(
-            target_speed, state['groundspeed']
+            target_speed, state["groundspeed"]
         )
 
-        if state['groundspeed'] > 3.0:
+        if state["groundspeed"] > 3.0:
             self.speed_break = 1.0
             self.throttle = 0
         else:

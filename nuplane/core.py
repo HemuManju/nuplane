@@ -7,8 +7,6 @@ import psutil
 
 from .xpc3 import XPlaneConnect
 
-from .sensors.sensor_interface import SensorInterface
-from .sensors.factory import SensorFactory
 
 from .maps import Map
 
@@ -50,10 +48,10 @@ class XPlaneCore:
         self.map = None
         self.hero = None
         self.config = join_dicts(BASE_CORE_CONFIG, config)
-        self.sensor_interface = SensorInterface()
 
         if not debug:
             self.init_server()
+            time.sleep(3)
 
         # Connect to client
         self.connect_client()
@@ -78,22 +76,23 @@ class XPlaneCore:
 
         server_command = [
             xplane_bin,
-            f"--windowed={self.config['xplane_server']['resolution_x']}x{self.config['xplane_server']['resolution_y']}",
+            f"--window={self.config['xplane_server']['resolution_x']}x{self.config['xplane_server']['resolution_y']}",
             "--no_sound",
         ]
 
-        self.process = subprocess.Popen(
+        # TODO: For some reason, the xplane cannot load the plugins properly if called by subprocess
+        subprocess.run(
             server_command,
             preexec_fn=os.setsid,
-            stdout=open(os.devnull, "w"),
         )
 
     def connect_client(self):
         """Connect to the client"""
 
+        print("Please make sure you are running X-Plane before connecting the client")
         for i in range(self.config["retries_on_error"]):
             try:
-                self.client = XPlaneConnect(xpPort=49009)
+                self.client = XPlaneConnect()
 
                 # Create a timer
                 self.t_start = self.client.getDREF("sim/time/local_time_sec")[0]
@@ -131,18 +130,6 @@ class XPlaneCore:
             self.hero.apply_action(control)
 
         return None
-
-    def tick(self):
-        """Performs one tick of the simulation, moving all actors, and getting the sensor data"""
-
-        # Return the sensor data
-        return self.get_sensor_data()
-
-    def get_sensor_data(self):
-        """Returns the data sent by the different sensors at this tick"""
-        sensor_data = self.sensor_interface.get_data()
-
-        return sensor_data
 
     def close_simulation(self):
         raise NotImplementedError

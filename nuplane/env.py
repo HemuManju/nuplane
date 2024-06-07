@@ -9,7 +9,7 @@ class NUPlaneEnv(gym.Env):
     This is a NUPlane environment, responsible of handling all the XPlane related steps of the training.
     """
 
-    def __init__(self, config, debug=False):
+    def __init__(self, config, debug=True):
         """Initializes the environment"""
 
         self.config = config
@@ -47,23 +47,19 @@ class NUPlaneEnv(gym.Env):
         [type]
             [description]
         """
-        obs, reward, done, info = self.experiment.reset(*args, **kwargs)
+        sensor_data = None
+        obs, reward, done, info = self.experiment.reset(sensor_data, *args, **kwargs)
         self.core.reset()
-        raw_data = self.core.tick()
-
-        print('-' * 32)
-
         return obs, reward, done, info
 
     def step(self, action):
         """Computes one tick of the environment in order to return the new observation,
         as well as the rewards"""
         # TODO: implement synchronmous or asynchronous simulation here
-
         self.experiment.apply_actions(action, self.core)
-        raw_data = self.core.tick()
 
-        observation, info = self.experiment.get_observation(raw_data, self.core)
+        sensor_data = None
+        observation, info = self.experiment.get_observation(sensor_data, self.core)
         done = self.experiment.get_done_status(observation, self.core)
         reward = self.experiment.compute_reward(observation, self.core)
 

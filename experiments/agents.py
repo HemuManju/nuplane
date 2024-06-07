@@ -3,7 +3,8 @@ import numpy as np
 import time
 
 from nuplane.actors import BaseActor
-from nuplane.utils.transform import *
+from nuplane.utils.transform import nm_to_m, ft_to_m
+from nuplane.utils.image import receive_image_over_tcp
 
 
 class AIAircraft(BaseActor):
@@ -13,11 +14,8 @@ class AIAircraft(BaseActor):
         self.id = id
         mode = [2] * 20
         mode[0] = 0
-        self.client.sendDREF('sim/operation/override/override_plane_ai_autopilot', mode)
+        self.client.sendDREF("sim/operation/override/override_plane_ai_autopilot", mode)
         time.sleep(0.1)
-
-    def apply_action(self, *args, **kwargs):
-        return None
 
     def get_observation(self, *args, **kwargs):
         return None
@@ -26,16 +24,16 @@ class AIAircraft(BaseActor):
         initRef = f"sim/multiplayer/position/plane{self.id}_"
         drefs = []
         refs = [
-            'the',
-            'psi',
-            'phi',
-            'psi',
-            'v_x',
-            'v_y',
-            'v_z',
-            'wing_sweep',
-            'x',
-            'y',
+            "the",
+            "psi",
+            "phi",
+            "psi",
+            "v_x",
+            "v_y",
+            "v_z",
+            "wing_sweep",
+            "x",
+            "y",
         ]
         for ref in refs:
             drefs += [initRef + ref]
@@ -45,9 +43,9 @@ class AIAircraft(BaseActor):
 
     def set_position(self, position, elevation):
         mode = [1] * 20
-        self.client.sendDREF(f'sim/operation/override/override_planepath', mode)
+        self.client.sendDREF("sim/operation/override/override_planepath", mode)
         self.client.sendPOSI(
-            [position['lat'], position['lon'], 0, 0, 0, position['heading']], self.id
+            [position["lat"], position["lon"], 0, 0, 0, position["heading"]], self.id
         )
         time.sleep(0.1)
         self.client.sendDREF(f"sim/multiplayer/position/plane{self.id}_y", elevation)
@@ -63,12 +61,12 @@ class AIAircraft(BaseActor):
         )
         mode = [1] * 20
         mode[0] = 1
-        self.client.sendDREF('sim/multiplayer/controls/gear_request', mode)
+        self.client.sendDREF("sim/multiplayer/controls/gear_request", mode)
         if brake:
             mode = [1] * 20
         else:
             mode = [0] * 20
-        self.client.sendDREF(f"sim/multiplayer/controls/parking_brake", mode)
+        self.client.sendDREF("sim/multiplayer/controls/parking_brake", mode)
         self.client.sendCTRL([elev, aileron, rudder, throttle], self.id)
         time.sleep(0.1)
 
@@ -80,16 +78,25 @@ class Hero(BaseActor):
     def get_observation(self, *args, **kwargs):
         initRef = "sim/flightmodel/position/"
         data_refs = [
-            'latitude',
-            'longitude',
-            'true_psi',
-            'psi',
-            'groundspeed',
+            "latitude",
+            "longitude",
+            "true_psi",
+            "psi",
+            "groundspeed",
         ]
         data = self.client.getDREFs([initRef + item for item in data_refs])
         observation = {}
         for i, item in enumerate(data):
             observation[data_refs[i]] = item[0]
+
+        # Get image data
+        camera_data = self.client.getDREF("nuplane/camera_data")
+        width, height = camera_data[0], camera_data[1]
+
+        tcp_port = self.client.getDREF("nuplane/camera_tcp_port")[0]
+        image = receive_image_over_tcp(width, height, 3, tcp_port)
+
+        observation["image"] = image
 
         return observation
 
@@ -97,35 +104,35 @@ class Hero(BaseActor):
         initRef = "sim/flightmodel/position/"
         drefs = []
         refs = [
-            'theta',
-            'phi',
-            'psi',
-            'local_vx',
-            'local_vy',
-            'local_vz',
-            'local_ax',
-            'local_ay',
-            'local_az',
-            'Prad',
-            'Qrad',
-            'Rrad',
-            'q',
-            'groundspeed',
-            'indicated_airspeed',
-            'indicated_airspeed2',
-            'true_airspeed',
-            'M',
-            'N',
-            'L',
-            'P',
-            'Q',
-            'R',
-            'P_dot',
-            'Q_dot',
-            'R_dot',
-            'Prad',
-            'Qrad',
-            'Rrad',
+            "theta",
+            "phi",
+            "psi",
+            "local_vx",
+            "local_vy",
+            "local_vz",
+            "local_ax",
+            "local_ay",
+            "local_az",
+            "Prad",
+            "Qrad",
+            "Rrad",
+            "q",
+            "groundspeed",
+            "indicated_airspeed",
+            "indicated_airspeed2",
+            "true_airspeed",
+            "M",
+            "N",
+            "L",
+            "P",
+            "Q",
+            "R",
+            "P_dot",
+            "Q_dot",
+            "R_dot",
+            "Prad",
+            "Qrad",
+            "Rrad",
         ]
         for ref in refs:
             drefs += [initRef + ref]
@@ -133,9 +140,9 @@ class Hero(BaseActor):
         self.client.sendDREFs(drefs, values)
 
         # Get the position using node number
-        node_num = self.config['spawn_location']
+        node_num = self.config["spawn_location"]
         position = self.map.get_node_info(node_num)
-        position['heading'] = heading
+        position["heading"] = heading
         self._set_position(position)
 
         # Make throttle zero
@@ -150,9 +157,9 @@ class Hero(BaseActor):
 
     def _set_position(self, position):
         mode = [1] * 20
-        self.client.sendDREF('sim/operation/override/override_planepath', mode)
+        self.client.sendDREF("sim/operation/override/override_planepath", mode)
         self.client.sendPOSI(
-            [position['y'], position['x'], 0, 0, 0, position['heading']], 0
+            [position["y"], position["x"], 0, 0, 0, position["heading"]], 0
         )
         time.sleep(0.1)
         curr_agly = self.client.getDREF("sim/flightmodel/position/y_agl")[0]
@@ -175,7 +182,7 @@ class Hero(BaseActor):
         )
         mode = [1] * 20
         # Deploy the gear in case
-        self.client.sendDREF('sim/multiplayer/controls/gear_request', mode)
+        self.client.sendDREF("sim/multiplayer/controls/gear_request", mode)
 
         # Release the break
         self.client.sendDREF("sim/flightmodel/controls/parkbrake", parkbrake)
@@ -191,9 +198,13 @@ class AutolandActor(BaseActor):
         super().__init__(client, config)
 
         # Assume plane starts aligned at beginning of runway
-        self._glideslope_heading = self.client.getDREF("sim/flightmodel/position/psi")[0]
+        self._glideslope_heading = self.client.getDREF("sim/flightmodel/position/psi")[
+            0
+        ]
         true_psi = self.client.getDREF("sim/flightmodel/position/true_psi")[0]
-        print(f"Glideslope heading inferred to be: {self._glideslope_heading} ({true_psi} true north heading)")
+        print(
+            f"Glideslope heading inferred to be: {self._glideslope_heading} ({true_psi} true north heading)"
+        )
 
         # Get OpenGL coordinates so we can make this point the origin
         # of the transformed coordinates
@@ -203,8 +214,9 @@ class AutolandActor(BaseActor):
         rotrad = math.radians(-self._glideslope_heading)
         # rotation is clockwise from north
         # plus some axis flipping to align xs
-        self._R = np.array([[ np.cos(rotrad), -np.sin(rotrad) ],
-                            [ np.sin(rotrad),  np.cos(rotrad)]])
+        self._R = np.array(
+            [[np.cos(rotrad), -np.sin(rotrad)], [np.sin(rotrad), np.cos(rotrad)]]
+        )
         self._t = np.array((opengl_z, opengl_x)).reshape((2, 1))
 
         # determine elevation offset by getting difference between local y (the axis for elevation)
@@ -237,30 +249,32 @@ class AutolandActor(BaseActor):
 
         hero_config = self.config["hero_config"]
 
-        init_u =     hero_config.get("init_u", 50.)
-        init_v =     hero_config.get("init_v", 0.)
-        init_w =     hero_config.get("init_w", 0.)
-        init_p =     hero_config.get("init_p", 0.)
-        init_q =     hero_config.get("init_q", 0.)
-        init_r =     hero_config.get("init_r", 0.)
-        init_phi =   hero_config.get("init_phi", 0.)
-        init_theta = hero_config.get("init_theta", 0.)
-        init_psi =   hero_config.get("init_psi", 0.)
-        init_x_nm =  hero_config.get("init_x", 7.)
-        init_y =     hero_config.get("init_y", 0.)
-        init_h_ft =  hero_config.get("init_h", 3300.)
+        init_u = hero_config.get("init_u", 50.0)
+        init_v = hero_config.get("init_v", 0.0)
+        init_w = hero_config.get("init_w", 0.0)
+        init_p = hero_config.get("init_p", 0.0)
+        init_q = hero_config.get("init_q", 0.0)
+        init_r = hero_config.get("init_r", 0.0)
+        init_phi = hero_config.get("init_phi", 0.0)
+        init_theta = hero_config.get("init_theta", 0.0)
+        init_psi = hero_config.get("init_psi", 0.0)
+        init_x_nm = hero_config.get("init_x", 7.0)
+        init_y = hero_config.get("init_y", 0.0)
+        init_h_ft = hero_config.get("init_h", 3300.0)
 
         # conversions
         self._init_x = nm_to_m(init_x_nm)
         self._init_h = ft_to_m(init_h_ft)
 
         if self._init_h < self._start_elev:
-            raise Warning(f"Note: Initial height is below start elevation of {self._start_elev}m")
+            raise Warning(
+                f"Note: Initial height is below start elevation of {self._start_elev}m"
+            )
 
         self.client.pauseSim(True)
 
         # Zero out control inputs
-        self.client.sendCTRL([0,0,0,0])
+        self.client.sendCTRL([0, 0, 0, 0])
 
         # Set parking brake
         self.client.sendDREF("sim/flightmodel/controls/parkbrake", 0)
@@ -268,21 +282,47 @@ class AutolandActor(BaseActor):
         # Zero out moments and forces
         initRef = "sim/flightmodel/position/"
         drefs = []
-        refs = ['theta','phi', 'local_vx','local_vy',
-                'local_vz','local_ax','local_ay','local_az',
-                'Prad','Qrad','Rrad','q','groundspeed',
-                'indicated_airspeed','indicated_airspeed2',
-                'true_airspeed','M','N','L','P','Q','R','P_dot',
-                'Q_dot','R_dot','Prad','Qrad','Rrad']
+        refs = [
+            "theta",
+            "phi",
+            "local_vx",
+            "local_vy",
+            "local_vz",
+            "local_ax",
+            "local_ay",
+            "local_az",
+            "Prad",
+            "Qrad",
+            "Rrad",
+            "q",
+            "groundspeed",
+            "indicated_airspeed",
+            "indicated_airspeed2",
+            "true_airspeed",
+            "M",
+            "N",
+            "L",
+            "P",
+            "Q",
+            "R",
+            "P_dot",
+            "Q_dot",
+            "R_dot",
+            "Prad",
+            "Qrad",
+            "Rrad",
+        ]
         for ref in refs:
-            drefs += [initRef+ref]
-        values = [0]*len(refs)
-        self.client.sendDREFs(drefs,values)
+            drefs += [initRef + ref]
+        values = [0] * len(refs)
+        self.client.sendDREFs(drefs, values)
 
         # Set position and orientation
         # Set known good start values
         # Note: setting position with lat/lon gets you within 0.3m. Setting local_x, local_z is more accurate)
-        self._set_orient_pos(init_phi, init_theta, init_psi, self._init_x, init_y, self._init_h)
+        self._set_orient_pos(
+            init_phi, init_theta, init_psi, self._init_x, init_y, self._init_h
+        )
         self._set_orientrate_vel(init_u, init_v, init_w, init_p, init_q, init_r)
 
         # Fix the plane if you "crashed" or broke something
@@ -292,10 +332,13 @@ class AutolandActor(BaseActor):
         self.client.sendDREF("sim/flightmodel/engine/ENGN_mixt", 0.61)
 
         # Reset fuel levels
-        self.client.sendDREFs(["sim/flightmodel/weight/m_fuel1","sim/flightmodel/weight/m_fuel2"],[232,232])
+        self.client.sendDREFs(
+            ["sim/flightmodel/weight/m_fuel1", "sim/flightmodel/weight/m_fuel2"],
+            [232, 232],
+        )
 
         # Give time to settle
-        time.sleep(1.)
+        time.sleep(1.0)
 
     def get_observation(self, *args, **kwargs):
         """Get the observation from the actor.
@@ -334,10 +377,10 @@ class AutolandActor(BaseActor):
     # by default these are passthroughs -- can be overloaded in a subclass
     ###########################################################################
     def est_statevec(self):
-        vel  = self.est_vel_state()
+        vel = self.est_vel_state()
         ovel = self.est_orient_vel_state()
-        o    = self.est_orient_state()
-        pos  = self.est_pos_state()
+        o = self.est_orient_state()
+        pos = self.est_pos_state()
 
         return np.stack((vel, ovel, o, pos)).flatten()
 
@@ -374,10 +417,10 @@ class AutolandActor(BaseActor):
             h      - aircraft altitude (m)
         """
 
-        vel  = self.get_vel_state()
+        vel = self.get_vel_state()
         ovel = self.get_orient_vel_state()
-        o    = self.get_orient_state()
-        pos  = self.get_pos_state()
+        o = self.get_orient_state()
+        pos = self.get_pos_state()
 
         return np.stack((vel, ovel, o, pos)).flatten()
 
@@ -385,24 +428,24 @@ class AutolandActor(BaseActor):
         return self._body_frame_velocity()
 
     def get_orient_vel_state(self):
-        P = self.client.getDREF('sim/flightmodel/position/P')[0]
-        Q = self.client.getDREF('sim/flightmodel/position/Q')[0]
-        R = self.client.getDREF('sim/flightmodel/position/R')[0]
+        P = self.client.getDREF("sim/flightmodel/position/P")[0]
+        Q = self.client.getDREF("sim/flightmodel/position/Q")[0]
+        R = self.client.getDREF("sim/flightmodel/position/R")[0]
         return np.array([P, Q, R])
 
     def get_orient_state(self):
-        phi = self.client.getDREF('sim/flightmodel/position/phi')[0]
-        theta = self.client.getDREF('sim/flightmodel/position/theta')[0]
+        phi = self.client.getDREF("sim/flightmodel/position/phi")[0]
+        theta = self.client.getDREF("sim/flightmodel/position/theta")[0]
         psi = self._get_home_heading()
         return np.array([phi, theta, psi])
 
     def get_pos_state(self):
         x, y = self._get_home_xy()
-        h = self.client.getDREF('sim/flightmodel/position/elevation')[0]
+        h = self.client.getDREF("sim/flightmodel/position/elevation")[0]
         return np.array([x, y, h])
 
     def _set_orient_pos(self, phi, theta, psi, x, y, h):
-        '''
+        """
         Set the orientation and position of the plane.
         Args:
             phi    - roll angle (deg)
@@ -411,27 +454,29 @@ class AutolandActor(BaseActor):
             x      - horizontal distance (m)
             y      - lateral deviation (m)
             h      - aircraft altitude (m)
-        '''
+        """
         self._send_xy(x, y)
         self.client.sendDREF("sim/flightmodel/position/local_y", h - self.height_offset)
 
-        self.client.sendDREF('sim/flightmodel/position/phi', phi)
-        self.client.sendDREF('sim/flightmodel/position/theta', theta)
-        self.client.sendDREF('sim/flightmodel/position/psi', self._home_to_opengl_heading(psi))
+        self.client.sendDREF("sim/flightmodel/position/phi", phi)
+        self.client.sendDREF("sim/flightmodel/position/theta", theta)
+        self.client.sendDREF(
+            "sim/flightmodel/position/psi", self._home_to_opengl_heading(psi)
+        )
 
     def _set_orientrate_vel(self, u, v, w, p, q, r):
         # 2d rotation and flip
         uv = np.array([u, v]).reshape((2, 1))
         hr = math.radians(self._home_to_opengl_heading(0))
-        R = np.array([[np.cos(hr), -np.sin(hr)],[np.sin(hr), np.cos(hr)]])
-        rot_uv = R@uv
+        R = np.array([[np.cos(hr), -np.sin(hr)], [np.sin(hr), np.cos(hr)]])
+        rot_uv = R @ uv
         # flip direction of longitudinal velocity to put in OpenGL coordinates
-        self.client.sendDREF('sim/flightmodel/position/local_vz', -rot_uv[0])
-        self.client.sendDREF('sim/flightmodel/position/local_vx', rot_uv[1])
-        self.client.sendDREF('sim/flightmodel/position/local_vy', w)
-        self.client.sendDREF('sim/flightmodel/position/P', p)
-        self.client.sendDREF('sim/flightmodel/position/Q', q)
-        self.client.sendDREF('sim/flightmodel/position/R', r)
+        self.client.sendDREF("sim/flightmodel/position/local_vz", -rot_uv[0])
+        self.client.sendDREF("sim/flightmodel/position/local_vx", rot_uv[1])
+        self.client.sendDREF("sim/flightmodel/position/local_vy", w)
+        self.client.sendDREF("sim/flightmodel/position/P", p)
+        self.client.sendDREF("sim/flightmodel/position/Q", q)
+        self.client.sendDREF("sim/flightmodel/position/R", r)
 
     def _send_xy(self, x, y):
         """
@@ -451,14 +496,14 @@ class AutolandActor(BaseActor):
         Note: in local frame, y is elevation (up) so we care about x and **z** for this rotation
         """
         xy = np.array([[x], [y]]).reshape((2, 1))
-        r = self._R@xy
+        r = self._R @ xy
         local_z, local_x = r + self._t
         return local_z.flatten(), local_x.flatten()
 
     def _opengl_zx_to_xy(self, local_z, local_x):
         l = np.array([[local_z], [local_x]]).reshape((2, 1))
         r = l - self._t
-        xy = np.linalg.inv(self._R)@r
+        xy = np.linalg.inv(self._R) @ r
         xy = xy.flatten()
         return xy[0], xy[1]
 
@@ -476,27 +521,23 @@ class AutolandActor(BaseActor):
         cos = math.cos
         sin = math.sin
 
-        psi = self.client.getDREF('sim/flightmodel/position/psi')[0]
-        theta = self.client.getDREF('sim/flightmodel/position/theta')[0]
-        phi = self.client.getDREF('sim/flightmodel/position/phi')[0]
+        psi = self.client.getDREF("sim/flightmodel/position/psi")[0]
+        theta = self.client.getDREF("sim/flightmodel/position/theta")[0]
+        phi = self.client.getDREF("sim/flightmodel/position/phi")[0]
 
         h = math.radians(psi)
-        Rh = np.array([[ cos(h), sin(h), 0],
-                    [-sin(h), cos(h), 0],
-                    [      0,      0,  1]])
+        Rh = np.array([[cos(h), sin(h), 0], [-sin(h), cos(h), 0], [0, 0, 1]])
         el = math.radians(theta)
-        Re = np.array([[cos(el), 0, -sin(el)],
-                    [      0, 1,        0],
-                    [sin(el),  0,  cos(el)]])
+        Re = np.array([[cos(el), 0, -sin(el)], [0, 1, 0], [sin(el), 0, cos(el)]])
         roll = math.radians(phi)
-        Rr = np.array([[1,          0,         0],
-                    [0,  cos(roll), sin(roll)],
-                    [0, -sin(roll), cos(roll)]])
+        Rr = np.array(
+            [[1, 0, 0], [0, cos(roll), sin(roll)], [0, -sin(roll), cos(roll)]]
+        )
         R = np.matmul(Rr, np.matmul(Re, Rh))
 
-        vx = self.client.getDREF('sim/flightmodel/position/local_vx')[0]
-        vy = self.client.getDREF('sim/flightmodel/position/local_vy')[0]
-        vz = self.client.getDREF('sim/flightmodel/position/local_vz')[0]
+        vx = self.client.getDREF("sim/flightmodel/position/local_vx")[0]
+        vy = self.client.getDREF("sim/flightmodel/position/local_vy")[0]
+        vz = self.client.getDREF("sim/flightmodel/position/local_vz")[0]
         # local frame is East-Up-South and we convert to North-East-Down
         vel_vec = np.array([-vz, vx, -vy]).T
 
