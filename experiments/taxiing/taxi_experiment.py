@@ -84,7 +84,7 @@ class TaxiingExperiment(BaseExperiment):
         if hero_obs is not None:
             heading = self.path_planner.get_heading(hero_obs)
             distance_to_next_pos = self.path_planner.get_distance_to_next_pos()
-        obs = [distance_to_next_pos, heading]
+        obs = [distance_to_next_pos, heading, len(self.path_planner.route_deque)]
 
         return obs, {}
 

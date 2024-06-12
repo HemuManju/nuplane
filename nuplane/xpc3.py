@@ -3,6 +3,9 @@ import struct
 import numpy as np
 
 
+from .utils.transform import random_placement
+
+
 class XPlaneConnect(object):
     """XPlaneConnect (XPC) facilitates communication to and from the XPCPlugin."""
 
@@ -324,6 +327,45 @@ class XPlaneConnect(object):
 
         # Send
         self.sendUDP(buffer)
+
+    def loadOBJ(self, path, on_ground=1, smoke_size=0.0):
+        index = 1
+        msg = struct.pack(
+            "<4sxi500s", b"OBJN", index, path.encode("utf-8")
+        )  # remember to encode string as bytes
+        self.socket.sendto(msg, 0, self.xpDst)
+
+        # Get flight position
+        drefs = [
+            "sim/flightmodel/position/latitude",
+            "sim/flightmodel/position/longitude",
+            "sim/flightmodel/position/elevation",
+            "sim/flightmodel/position/psi",
+            "sim/flightmodel/position/phi",
+            "sim/flightmodel/position/theta",
+        ]
+        output = self.getDREFs(drefs)
+        lat, lon, ele = output[0][0], output[1][0], output[2][0]
+        psi, phi, theta = output[3][0], output[4][0], output[5][0]
+
+        lat_new, lon_new = random_placement(lat, lon, 30, 2)
+        self.pauseSim(True)
+        self.sendDREFs(["sim/operation/fix_all_systems"], [1])
+        msg = struct.pack(
+            "<4sxi4xdddfffif4x",
+            b"OBJL",
+            index,  # as provided with OBJN above
+            lat_new,
+            lon_new,
+            ele,  # floats, elevation is meters (ignored if on_ground = 1)
+            psi,
+            theta,
+            phi,  # floats
+            on_ground,  # 1= set on ground, 0= use provided elevation
+            smoke_size,
+        )  # 0.0 is no smoke
+        self.socket.sendto(msg, 0, self.xpDst)
+        self.pauseSim(False)
 
     def getIMG(self):
         # Properties

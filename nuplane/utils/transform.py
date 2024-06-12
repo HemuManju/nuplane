@@ -4,6 +4,7 @@ import glob
 import sys
 
 import math
+import random
 
 import numpy as np
 from scipy.special import comb
@@ -245,3 +246,36 @@ def nm_to_m(dist_nm):
 
 def ft_to_m(dist_ft):
     return M_FT * dist_ft
+
+
+def random_placement(latitude, longitude, x_distance_m, y_distance_m):
+    """
+    Randomly place an object around given latitude and longitude coordinates.
+
+    Parameters:
+        latitude (float): Latitude coordinate.
+        longitude (float): Longitude coordinate.
+        x_distance_m (float): Maximum distance in meters to move in the x-direction.
+        y_distance_m (float): Maximum distance in meters to move in the y-direction.
+
+    Returns:
+        tuple: Randomly generated latitude and longitude coordinates.
+    """
+    # Earth's radius in meters
+    earth_radius = 6371000  # in meters
+
+    # Convert latitude from degrees to radians
+    lat_rad = latitude * (math.pi / 180)
+
+    # Calculate the radius of a circle around the Earth's surface at given latitude
+    circle_radius = earth_radius * abs(math.cos(lat_rad))
+
+    # Convert offsets from radians to degrees
+    x_offset_deg = math.degrees(x_distance_m / (earth_radius * math.cos(lat_rad)))
+    y_offset_deg = math.degrees(y_distance_m / earth_radius)
+
+    # Calculate new latitude and longitude coordinates
+    new_latitude = latitude + y_offset_deg
+    new_longitude = longitude + x_offset_deg
+
+    return new_latitude, new_longitude

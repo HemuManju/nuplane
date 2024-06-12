@@ -28,7 +28,7 @@ def download_airport_scenary_pack(airport_id, export_path):
         p_apt.export(
             export_path + f"{airport_id}.shp",
             driver="ESRI Shapefile",
-            features=["linear_features", "runways", "pavements"],
+            features=["linear_features"],
         )
 
     return None

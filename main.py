@@ -175,7 +175,7 @@ with skip_run("skip", "explore_path_planning") as check, check():
         open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
     )
 
-    core = XPlaneCore(config, debug=False)
+    core = XPlaneCore(config, debug=True)
     G = core.map.get_node_graph()
 
     spawn_points = yaml.load(open("config/spawn_points.yaml"), Loader=yaml.SafeLoader)
@@ -241,6 +241,10 @@ with skip_run("skip", "taxiing_experiment") as check, check():
         # Apply control
         obs, reward, done, info = xplane_env.step(control)
 
+        if obs[2] == 50:
+            path = "Custom Scenery/Simple_Ground_Equipment_and_Services_v67.8/Simple_Ground_Equipment_and_Services/MisterX_Lib/Stairs/Generic.obj"
+            xplane_env.core.client.loadOBJ(path=path, on_ground=1)
+
 with skip_run("skip", "image_data_feed") as check, check():
     config["experiment"]["type"] = TaxiingExperiment
     config["experiment"]["experiment_config"] = yaml.load(
@@ -262,14 +266,14 @@ with skip_run("skip", "taxiing_experiment_video") as check, check():
     config["experiment"]["experiment_config"] = yaml.load(
         open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
     )
-    xplane_env = NUPlaneEnv(config, debug=False)
+    xplane_env = NUPlaneEnv(config, debug=True)
     obs, reward, done, info = xplane_env.reset()
 
     # Controller or RL
     controller = PathController(agent=xplane_env.experiment.hero)
     i = 0
 
-    t = 1000
+    t = 100
     xplane_env.core.client.sendDREF("sim/weather/rain_percent", 1.0)
     xplane_env.core.client.sendDREF("sim/weather/cloud_base_msl_m[1]", 750000)
     xplane_env.core.client.sendDREF("sim/graphics/scenery/airport_light_level", 1)
@@ -277,22 +281,23 @@ with skip_run("skip", "taxiing_experiment_video") as check, check():
     while not done:
         i += 1
         control = controller.get_control(obs[0], obs[1])
+
         print(i)
 
         # Apply control
         obs, reward, done, info = xplane_env.step(control)
 
-        if i > t and i < (2 * t):
-            xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 4)
+        # if i > t and i < (2 * t):
+        #     xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 4)
 
-        if i > (2 * t) and i < (3 * t):
-            xplane_env.core.client.sendDREF("sim/weather/cloud_type[1]", 1)
+        # if i > (2 * t) and i < (3 * t):
+        #     xplane_env.core.client.sendDREF("sim/weather/cloud_type[1]", 1)
 
-        if i > (3 * t) and i < (4 * t):
-            xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 3)
+        # if i > (3 * t) and i < (4 * t):
+        #     xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 3)
 
-        if i > (4 * t) and i < (5 * t):
-            xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 2)
+        # if i > (4 * t) and i < (5 * t):
+        #     xplane_env.core.client.sendDREF("sim/weather/cloud_type[0]", 2)
 
 with skip_run("skip", "image_data_feed") as check, check():
     config["experiment"]["type"] = TaxiingExperiment
@@ -400,3 +405,21 @@ with skip_run("skip", "auto_land_kmwh") as check, check():
         )
         time.sleep(5)
         exp.actor.place_at_start_position()
+
+with skip_run("skip", "add_objects") as check, check():
+    # Setup the environment and experiment
+    config["experiment"]["type"] = TaxiingExperiment
+    config["experiment"]["experiment_config"] = yaml.load(
+        open("experiments/taxiing/experiment_config.yaml"), Loader=yaml.SafeLoader
+    )
+    xplane_env = NUPlaneEnv(config, debug=True)
+    obs, reward, done, info = xplane_env.reset()
+
+    # Controller or RL
+    controller = PathController(agent=xplane_env.experiment.hero)
+
+    path = "Custom Scenery/X-Plane Landmarks - New York/objects/Lady_Liberty.obj"
+    path = "Custom Scenery/Simple_Ground_Equipment_and_Services_v67.8/Simple_Ground_Equipment_and_Services/Ground_carts/308_XPJavelin3.obj"
+    path = "Custom Scenery/Simple_Ground_Equipment_and_Services_v67.8/Simple_Ground_Equipment_and_Services/MisterX_Lib/Stairs/Generic.obj"
+
+    xplane_env.core.client.loadOBJ(path=path, on_ground=1)
